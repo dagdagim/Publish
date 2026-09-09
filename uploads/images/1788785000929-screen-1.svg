@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 700" fill="none">
+    <rect width="400" height="700" rx="36" fill="#052E16"/>
+    <radialGradient id="fq1-radial" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#15803D" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#052E16" stop-opacity="1"/>
+    </radialGradient>
+    <rect width="400" height="700" rx="36" fill="url(#fq1-radial)"/>
+    
+    <!-- Phone Top Status Bar -->
+    <text x="32" y="38" fill="#A7F3D0" font-family="Inter, sans-serif" font-size="13" font-weight="600">9:41</text>
+    <circle cx="350" cy="34" r="4" fill="#A7F3D0"/>
+    <circle cx="362" cy="34" r="4" fill="#A7F3D0"/>
+    
+    <!-- Soccer Ball Hero -->
+    <circle cx="200" cy="220" r="76" fill="#FFFFFF" stroke="#14532D" stroke-width="8"/>
+    <polygon points="200,188 224,206 214,234 186,234 176,206" fill="#0F172A"/>
+    <path d="M200,188 L200,152 M224,206 L256,196 M214,234 L236,262 M186,234 L164,262 M176,206 L144,196" stroke="#0F172A" stroke-width="7" stroke-linecap="round"/>
+    
+    <!-- Title & Sub -->
+    <text x="200" y="348" text-anchor="middle" fill="#FFFFFF" font-family="'Plus Jakarta Sans', sans-serif" font-size="28" font-weight="800" letter-spacing="-0.5">Football Quiz</text>
+    <text x="200" y="378" text-anchor="middle" fill="#86EFAC" font-family="Inter, sans-serif" font-size="14" font-weight="500">World Tournaments & Legends Edition</text>
+    
+    <!-- Big Play CTA -->
+    <rect x="56" y="440" width="288" height="58" rx="16" fill="#22C55E"/>
+    <text x="200" y="476" text-anchor="middle" fill="#052E16" font-family="'Plus Jakarta Sans', sans-serif" font-size="18" font-weight="800">PLAY GAME</text>
+    
+    <!-- Modes Pill Cards -->
+    <rect x="56" y="516" width="288" height="48" rx="14" fill="#14532D" stroke="#166534" stroke-width="1.5"/>
+    <text x="80" y="546" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="14" font-weight="600">Daily Challenge</text>
+    <text x="320" y="546" text-anchor="end" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13" font-weight="700">★ 500 PTS</text>
+    
+    <rect x="56" y="576" width="288" height="48" rx="14" fill="#14532D" stroke="#166534" stroke-width="1.5"/>
+    <text x="80" y="606" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="14" font-weight="600">World Cup Trivia</text>
+    <text x="320" y="606" text-anchor="end" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13" font-weight="700">15 LVLS</text>
+  </svg>

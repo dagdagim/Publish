@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 700" fill="none">
+    <rect width="400" height="700" rx="36" fill="#052E16"/>
+    <radialGradient id="fq2-radial" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#15803D" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#052E16" stop-opacity="1"/>
+    </radialGradient>
+    <rect width="400" height="700" rx="36" fill="url(#fq2-radial)"/>
+    
+    <!-- Header -->
+    <text x="32" y="44" fill="#A7F3D0" font-family="Inter, sans-serif" font-size="13" font-weight="600">Question 8 / 15</text>
+    <rect x="290" y="28" width="78" height="26" rx="8" fill="#14532D"/>
+    <text x="329" y="45" text-anchor="middle" fill="#86EFAC" font-family="Inter, sans-serif" font-size="12" font-weight="700">⏱ 00:14</text>
+    
+    <!-- Progress Bar -->
+    <rect x="32" y="64" width="336" height="6" rx="3" fill="#14532D"/>
+    <rect x="32" y="64" width="180" height="6" rx="3" fill="#22C55E"/>
+    
+    <!-- Question Card -->
+    <rect x="32" y="96" width="336" height="130" rx="20" fill="#0A3F20" stroke="#166534" stroke-width="1.5"/>
+    <text x="52" y="142" fill="#86EFAC" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="1">FIFA WORLD CUP</text>
+    <text x="52" y="174" fill="#FFFFFF" font-family="'Plus Jakarta Sans', sans-serif" font-size="17" font-weight="700">Which country won the FIFA</text>
+    <text x="52" y="198" fill="#FFFFFF" font-family="'Plus Jakarta Sans', sans-serif" font-size="17" font-weight="700">World Cup in 2018?</text>
+    
+    <!-- Options -->
+    <rect x="32" y="250" width="336" height="52" rx="14" fill="#14532D" stroke="#166534" stroke-width="1"/>
+    <text x="56" y="282" fill="#E2E8F0" font-family="Inter, sans-serif" font-size="15" font-weight="600">A.  Brazil</text>
+    
+    <!-- Correct Option Highlight -->
+    <rect x="32" y="316" width="336" height="52" rx="14" fill="#16A34A" stroke="#22C55E" stroke-width="2"/>
+    <text x="56" y="348" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="15" font-weight="700">B.  France</text>
+    <circle cx="340" cy="342" r="10" fill="#22C55E"/>
+    <path d="M336,342 L339,345 L345,339" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+    
+    <rect x="32" y="382" width="336" height="52" rx="14" fill="#14532D" stroke="#166534" stroke-width="1"/>
+    <text x="56" y="414" fill="#E2E8F0" font-family="Inter, sans-serif" font-size="15" font-weight="600">C.  Germany</text>
+    
+    <rect x="32" y="448" width="336" height="52" rx="14" fill="#14532D" stroke="#166534" stroke-width="1"/>
+    <text x="56" y="480" fill="#E2E8F0" font-family="Inter, sans-serif" font-size="15" font-weight="600">D.  Argentina</text>
+    
+    <!-- Feedback Banner -->
+    <rect x="32" y="524" width="336" height="110" rx="18" fill="#15803D" stroke="#22C55E" stroke-width="1.5"/>
+    <text x="56" y="562" fill="#FFFFFF" font-family="'Plus Jakarta Sans', sans-serif" font-size="18" font-weight="800">Correct! +100 PTS</text>
+    <text x="56" y="588" fill="#DCFCE7" font-family="Inter, sans-serif" font-size="13">France defeated Croatia 4-2 in Moscow.</text>
+    <text x="56" y="612" fill="#FEF08A" font-family="Inter, sans-serif" font-size="12" font-weight="700">Streak: 4 in a row 🔥</text>
+  </svg>

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 700" fill="none">
+    <rect width="400" height="700" rx="36" fill="#052E16"/>
+    <radialGradient id="fq3-radial" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#15803D" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#052E16" stop-opacity="1"/>
+    </radialGradient>
+    <rect width="400" height="700" rx="36" fill="url(#fq3-radial)"/>
+    
+    <!-- Leaderboard Header -->
+    <text x="200" y="56" text-anchor="middle" fill="#FFFFFF" font-family="'Plus Jakarta Sans', sans-serif" font-size="20" font-weight="800">Global Leaderboard</text>
+    <text x="200" y="80" text-anchor="middle" fill="#86EFAC" font-family="Inter, sans-serif" font-size="13">Season 4 — Week 38</text>
+    
+    <!-- Top 3 Podium Cards -->
+    <rect x="32" y="112" width="336" height="68" rx="16" fill="#14532D" stroke="#F59E0B" stroke-width="2"/>
+    <circle cx="64" cy="146" r="16" fill="#F59E0B"/>
+    <text x="64" y="151" text-anchor="middle" fill="#000000" font-family="Inter, sans-serif" font-size="12" font-weight="800">1</text>
+    <text x="96" y="141" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="15" font-weight="700">Marcus Sterling</text>
+    <text x="96" y="159" fill="#86EFAC" font-family="Inter, sans-serif" font-size="12">14,850 pts · Legend</text>
+    <text x="340" y="150" text-anchor="end" fill="#FCD34D" font-family="Inter, sans-serif" font-size="14" font-weight="800">👑 1st</text>
+    
+    <rect x="32" y="192" width="336" height="64" rx="16" fill="#14532D" stroke="#E2E8F0" stroke-width="1.5"/>
+    <circle cx="64" cy="224" r="16" fill="#CBD5E1"/>
+    <text x="64" y="229" text-anchor="middle" fill="#0F172A" font-family="Inter, sans-serif" font-size="12" font-weight="800">2</text>
+    <text x="96" y="219" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="15" font-weight="700">Elena Rostova</text>
+    <text x="96" y="237" fill="#86EFAC" font-family="Inter, sans-serif" font-size="12">13,920 pts · World Class</text>
+    <text x="340" y="228" text-anchor="end" fill="#E2E8F0" font-family="Inter, sans-serif" font-size="13" font-weight="700">🥈 2nd</text>
+    
+    <rect x="32" y="268" width="336" height="64" rx="16" fill="#14532D" stroke="#B45309" stroke-width="1.5"/>
+    <circle cx="64" cy="300" r="16" fill="#D97706"/>
+    <text x="64" y="305" text-anchor="middle" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="12" font-weight="800">3</text>
+    <text x="96" y="295" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="15" font-weight="700">Frank Miller</text>
+    <text x="96" y="313" fill="#86EFAC" font-family="Inter, sans-serif" font-size="12">12,410 pts · World Class</text>
+    <text x="340" y="304" text-anchor="end" fill="#FBBF24" font-family="Inter, sans-serif" font-size="13" font-weight="700">🥉 3rd</text>
+    
+    <!-- 4th, 5th, 6th rows -->
+    <rect x="32" y="348" width="336" height="52" rx="12" fill="#0D4420"/>
+    <text x="56" y="379" fill="#86EFAC" font-family="Inter, sans-serif" font-size="14" font-weight="700">#4</text>
+    <text x="96" y="379" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="14" font-weight="600">David K.</text>
+    <text x="340" y="379" text-anchor="end" fill="#A7F3D0" font-family="Inter, sans-serif" font-size="13">11,200 pts</text>
+    
+    <rect x="32" y="412" width="336" height="52" rx="12" fill="#0D4420"/>
+    <text x="56" y="443" fill="#86EFAC" font-family="Inter, sans-serif" font-size="14" font-weight="700">#5</text>
+    <text x="96" y="443" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="14" font-weight="600">Sarah M.</text>
+    <text x="340" y="443" text-anchor="end" fill="#A7F3D0" font-family="Inter, sans-serif" font-size="13">10,850 pts</text>
+    
+    <!-- User Position sticky bar -->
+    <rect x="32" y="570" width="336" height="66" rx="16" fill="#166534" stroke="#22C55E" stroke-width="2"/>
+    <text x="56" y="608" fill="#FEF08A" font-family="Inter, sans-serif" font-size="14" font-weight="800">YOU (#42)</text>
+    <text x="146" y="608" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="14" font-weight="700">Football Fanatic</text>
+    <text x="340" y="608" text-anchor="end" fill="#86EFAC" font-family="Inter, sans-serif" font-size="14" font-weight="800">8,450 pts</text>
+  </svg>

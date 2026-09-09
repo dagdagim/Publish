@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" fill="none">
+    <rect width="600" height="400" rx="18" fill="#F8FAFC"/>
+    <rect x="24" y="24" width="552" height="50" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="48" y="55" fill="#0F172A" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="700">East Valley Agricultural Cluster · Field 04</text>
+    <rect x="470" y="34" width="90" height="30" rx="6" fill="#16A34A"/>
+    <text x="515" y="54" text-anchor="middle" fill="#FFFFFF" font-family="Inter, sans-serif" font-size="12" font-weight="700">Optimal</text>
+    
+    <!-- Field Card 1 -->
+    <rect x="24" y="94" width="264" height="270" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <rect x="40" y="110" width="232" height="120" rx="8" fill="#DCFCE7"/>
+    <path d="M40,190 Q150,140 272,170" stroke="#15803D" stroke-width="3" fill="none"/>
+    <text x="40" y="254" fill="#0F172A" font-family="'Plus Jakarta Sans', sans-serif" font-size="15" font-weight="700">Soil Moisture &amp; Health</text>
+    <text x="40" y="278" fill="#64748B" font-family="Inter, sans-serif" font-size="13">Volumetric Water: 34.2%</text>
+    <text x="40" y="302" fill="#16A34A" font-family="Inter, sans-serif" font-size="13" font-weight="600">Irrigation scheduled: 06:00 AM</text>
+    
+    <!-- Field Card 2 -->
+    <rect x="312" y="94" width="264" height="270" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="328" y="128" fill="#0F172A" font-family="'Plus Jakarta Sans', sans-serif" font-size="15" font-weight="700">Marketplace Inquiries</text>
+    <rect x="328" y="148" width="232" height="52" rx="8" fill="#F1F5F9"/>
+    <text x="340" y="172" fill="#0F172A" font-family="Inter, sans-serif" font-size="13" font-weight="600">Premium Arabica Lot #4</text>
+    <text x="340" y="190" fill="#16A34A" font-family="Inter, sans-serif" font-size="12" font-weight="700">4,200 KG · $4.80/KG</text>
+  </svg>
