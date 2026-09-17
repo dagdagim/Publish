@@ -90,7 +90,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="nav-links" style={{ display: 'flex' }}>
+        <nav className="nav-links">
           <Link to="/explore" className={`nav-link ${location.pathname === '/explore' ? 'active' : ''}`} id="nav-explore">
             Explore
           </Link>
@@ -183,8 +183,20 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Right Action: User Account / Saved / Admin */}
+        {/* Right Actions Container */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Publish App Button */}
+          <Link
+            to="/developer"
+            className="btn btn-primary btn-sm"
+            title="Developer Portal — Publish & Manage Applications"
+            id="nav-publish-btn"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <PlusCircle size={15} />
+            <span className="hide-mobile">Publish</span>
+          </Link>
+
           <Link
             to="/saved"
             className="btn btn-secondary btn-sm"
@@ -276,6 +288,25 @@ export default function Navbar() {
                   </div>
 
                   <Link
+                    to="/developer"
+                    onClick={() => setUserDropdownOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      color: '#334155',
+                      textDecoration: 'none'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <PlusCircle size={15} color="#2563EB" /> Developer Console
+                  </Link>
+
+                  <Link
                     to="/saved"
                     onClick={() => setUserDropdownOpen(false)}
                     style={{
@@ -360,8 +391,8 @@ export default function Navbar() {
 
           {/* Mobile Menu Toggle Button */}
           <button
+            type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            style={{ display: 'none' }}
             className="mobile-menu-trigger"
             aria-label="Toggle navigation menu"
           >
@@ -407,27 +438,36 @@ export default function Navbar() {
             </div>
           )}
 
-          <Link to="/explore" className="nav-link" style={{ fontSize: '16px', fontWeight: '600' }}>
-            <Compass size={18} style={{ display: 'inline', marginRight: '10px' }} /> Explore
+          <Link 
+            to="/developer" 
+            onClick={() => setMobileMenuOpen(false)} 
+            className="btn btn-primary btn-block"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: '700' }}
+          >
+            <PlusCircle size={17} /> Publish App / Console
           </Link>
-          <Link to="/apps" className="nav-link" style={{ fontSize: '16px', fontWeight: '600' }}>
-            <Smartphone size={18} style={{ display: 'inline', marginRight: '10px' }} /> Apps
+
+          <Link to="/explore" onClick={() => setMobileMenuOpen(false)} className="nav-link" style={{ fontSize: '15.5px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Compass size={18} /> Explore
           </Link>
-          <Link to="/games" className="nav-link" style={{ fontSize: '16px', fontWeight: '600' }}>
-            <Gamepad2 size={18} style={{ display: 'inline', marginRight: '10px' }} /> Games
+          <Link to="/apps" onClick={() => setMobileMenuOpen(false)} className="nav-link" style={{ fontSize: '15.5px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Smartphone size={18} /> Apps
           </Link>
-          <Link to="/web" className="nav-link" style={{ fontSize: '16px', fontWeight: '600' }}>
-            <Globe size={18} style={{ display: 'inline', marginRight: '10px' }} /> Web Apps
+          <Link to="/games" onClick={() => setMobileMenuOpen(false)} className="nav-link" style={{ fontSize: '15.5px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Gamepad2 size={18} /> Games
           </Link>
-          <Link to="/collections" className="nav-link" style={{ fontSize: '16px', fontWeight: '600' }}>
-            <Layers size={18} style={{ display: 'inline', marginRight: '10px' }} /> Collections
+          <Link to="/web" onClick={() => setMobileMenuOpen(false)} className="nav-link" style={{ fontSize: '15.5px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Globe size={18} /> Web Apps
           </Link>
-          <Link to="/saved" className="nav-link" style={{ fontSize: '16px', fontWeight: '600' }}>
-            <Heart size={18} color="#EF4444" fill={savedCount > 0 ? '#EF4444' : 'none'} style={{ display: 'inline', marginRight: '10px' }} /> Saved Apps ({savedCount})
+          <Link to="/collections" onClick={() => setMobileMenuOpen(false)} className="nav-link" style={{ fontSize: '15.5px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Layers size={18} /> Collections
+          </Link>
+          <Link to="/saved" onClick={() => setMobileMenuOpen(false)} className="nav-link" style={{ fontSize: '15.5px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Heart size={18} color="#EF4444" fill={savedCount > 0 ? '#EF4444' : 'none'} /> Saved Apps ({savedCount})
           </Link>
           <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0' }} />
-          <Link to="/admin" className="btn btn-primary btn-block">
-            Admin Management
+          <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="btn btn-secondary btn-block" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <Shield size={16} /> Admin Management
           </Link>
         </div>
       )}

@@ -1106,19 +1106,6 @@ app.post('/api/auth/login', (req, res) => {
 
   let user = db.users.find(u => u.email.toLowerCase() === cleanEmail);
 
-  // Auto-seed demo user if credentials match demo user
-  if (!user && (cleanEmail === 'user@tobiyastudio.com' || cleanEmail === 'demo@tobiyastudio.com') && password === 'user123') {
-    user = {
-      id: 'usr-demo-01',
-      name: 'Demo User',
-      email: cleanEmail,
-      password: 'user123',
-      avatar: 'DU',
-      tokens: [],
-      createdAt: new Date().toISOString()
-    };
-    db.users.push(user);
-  }
 
   if (!user || user.password !== password) {
     return res.status(401).json({ error: 'Invalid email or password. Please try again.' });
@@ -1230,6 +1217,44 @@ app.post('/api/admin/products/:id/reject', (req, res) => {
   product.rejectionReason = req.body.reason || 'Submission does not meet TobiyaStudio distribution requirements.';
   saveData(db);
   res.json({ success: true, product });
+});
+
+// Admin: DELETE /api/admin/products/:id (Delete application from store)
+app.delete('/api/admin/products/:id', (req, res) => {
+  const db = readDb();
+  const prodIndex = (db.products || []).findIndex(p => p.id === req.params.id || p.slug === req.params.id);
+  if (prodIndex === -1) return res.status(404).json({ error: 'Product not found' });
+
+  const [deleted] = db.products.splice(prodIndex, 1);
+  if (db.collections) {
+    db.collections.forEach(col => {
+      col.productIds = (col.productIds || []).filter(id => id !== deleted.id && id !== deleted.slug);
+    });
+  }
+  if (db.productVersions) {
+    db.productVersions = db.productVersions.filter(v => v.productId !== deleted.id);
+  }
+  if (db.reviews) {
+    db.reviews = db.reviews.filter(r => r.productId !== deleted.id);
+  }
+  saveData(db);
+  res.json({ success: true, message: `Product '${deleted.name}' deleted successfully.`, deletedId: deleted.id });
+});
+
+// Client / Developer: DELETE /api/products/:id
+app.delete('/api/products/:id', (req, res) => {
+  const db = readDb();
+  const prodIndex = (db.products || []).findIndex(p => p.id === req.params.id || p.slug === req.params.id);
+  if (prodIndex === -1) return res.status(404).json({ error: 'Product not found' });
+
+  const [deleted] = db.products.splice(prodIndex, 1);
+  if (db.collections) {
+    db.collections.forEach(col => {
+      col.productIds = (col.productIds || []).filter(id => id !== deleted.id && id !== deleted.slug);
+    });
+  }
+  saveData(db);
+  res.json({ success: true, message: `Product '${deleted.name}' deleted successfully.` });
 });
 
 // Admin: GET /api/admin/reviews (all reviews for moderation)

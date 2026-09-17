@@ -157,108 +157,130 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. FEATURED PRODUCT SHOWCASE (Football Quiz) */}
+      {/* 2. FEATURED SPOTLIGHT OR DEVELOPER SHOWCASE */}
       <section className="section" style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
         <div className="container">
-          <div className="section-header">
+          {featured ? (
             <div>
-              <span style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#2563EB', display: 'block', marginBottom: '4px' }}>
-                Featured Spotlight
-              </span>
-              <h2 className="section-title">Featured Product</h2>
-            </div>
-            <Link to="/games" className="section-link">
-              View all games <ArrowRight size={15} />
-            </Link>
-          </div>
-
-          <div style={{
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #E2E8F0',
-            borderRadius: '24px',
-            padding: '36px',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1.3fr',
-            gap: '40px',
-            alignItems: 'center',
-            boxShadow: 'var(--shadow-sm)'
-          }}>
-            {/* Left Info Column */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '18px' }}>
-                <img
-                  src={featured.icon}
-                  alt={featured.name}
-                  style={{ width: '64px', height: '64px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: 'var(--shadow-xs)' }}
-                />
+              <div className="section-header">
                 <div>
-                  <h3 style={{ fontSize: '26px', fontWeight: '800', color: '#0F172A', letterSpacing: '-0.02em' }}>
-                    {featured.name}
-                  </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13.5px', fontWeight: '700', color: '#0F172A' }}>
-                      <Star size={15} fill="#F59E0B" color="#F59E0B" />
-                      <span>{featured.rating}</span>
-                      <span style={{ color: '#94A3B8', fontWeight: '400' }}>({featured.reviewCount} reviews)</span>
+                  <span style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#2563EB', display: 'block', marginBottom: '4px' }}>
+                    Featured Spotlight
+                  </span>
+                  <h2 className="section-title">Featured Product</h2>
+                </div>
+                <Link to="/explore" className="section-link">
+                  View all <ArrowRight size={15} />
+                </Link>
+              </div>
+
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #E2E8F0',
+                borderRadius: '24px',
+                padding: '36px',
+                display: 'grid',
+                gridTemplateColumns: '1fr 1.3fr',
+                gap: '40px',
+                alignItems: 'center',
+                boxShadow: 'var(--shadow-sm)'
+              }}>
+                {/* Left Info Column */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '18px' }}>
+                    <img
+                      src={featured.icon || '/assets/icons/agrivoice.svg'}
+                      alt={featured.name}
+                      style={{ width: '64px', height: '64px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: 'var(--shadow-xs)', objectFit: 'cover' }}
+                    />
+                    <div>
+                      <h3 style={{ fontSize: '26px', fontWeight: '800', color: '#0F172A', letterSpacing: '-0.02em' }}>
+                        {featured.name}
+                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13.5px', fontWeight: '700', color: '#0F172A' }}>
+                          <Star size={15} fill="#F59E0B" color="#F59E0B" />
+                          <span>{featured.rating || 5.0}</span>
+                          <span style={{ color: '#94A3B8', fontWeight: '400' }}>({featured.reviewCount || 0} reviews)</span>
+                        </div>
+                        <span className="badge badge-platform">{featured.platform}</span>
+                        <span className="badge badge-gray">{featured.category}</span>
+                      </div>
                     </div>
-                    <span className="badge badge-platform">{featured.platform}</span>
-                    <span className="badge badge-gray">{featured.category}</span>
+                  </div>
+
+                  <p style={{ fontSize: '15px', color: '#475569', lineHeight: '1.6', marginBottom: '24px' }}>
+                    {featured.shortDescription || (featured.description ? featured.description.slice(0, 160) + '...' : 'Available on TobiyaStudio.')}
+                  </p>
+
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Link to={`/product/${featured.slug}`} className="btn btn-primary" id="featured-view-btn">
+                      View Product
+                    </Link>
+                    {featured.apkUrl && (
+                      <button
+                        onClick={() => requireAuth(() => setDownloadingProduct(featured), {
+                          tab: 'register',
+                          prompt: `Create an account or log in to download ${featured.name} APK.`
+                        })}
+                        className="btn btn-outline"
+                        id="featured-download-btn"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Download size={15} /> Download APK ({featured.fileSize || 'Package'})
+                      </button>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              <p style={{ fontSize: '15px', color: '#475569', lineHeight: '1.6', marginBottom: '24px' }}>
-                {featured.shortDescription} {featured.description.slice(0, 140)}...
-              </p>
-
-              {/* Quick Feature Bullets */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '28px', fontSize: '13px', color: '#334155' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: '#16A34A', fontWeight: '700' }}>✓</span> 15 tournament categories
+                {/* Right Showcase */}
+                <div style={{
+                  display: 'flex',
+                  gap: '16px',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  overflowX: 'auto',
+                  padding: '10px 0'
+                }}>
+                  {(featured.screenshots && featured.screenshots.length > 0 ? featured.screenshots : [featured.coverImage || featured.icon]).slice(0, 3).map((sc, idx) => (
+                    <PhoneMockup key={idx} src={sc} title={featured.name} width={idx === 1 ? 175 : 165} style={idx === 1 ? { transform: 'scale(1.04)', zIndex: 2 } : {}} />
+                  ))}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: '#16A34A', fontWeight: '700' }}>✓</span> Real-time global leaderboards
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: '#16A34A', fontWeight: '700' }}>✓</span> Timed challenge streaks
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: '#16A34A', fontWeight: '700' }}>✓</span> 100% offline support
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <Link to={`/product/${featured.slug}`} className="btn btn-primary" id="featured-view-btn">
-                  View Product
-                </Link>
-                <button
-                  onClick={() => requireAuth(() => setDownloadingProduct(featured), {
-                    tab: 'register',
-                    prompt: `Create an account or log in to download ${featured.name} APK.`
-                  })}
-                  className="btn btn-outline"
-                  id="featured-download-btn"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Download size={15} /> Download APK ({featured.fileSize})
-                </button>
               </div>
             </div>
-
-            {/* Right Showcase: 3 Mobile Screenshots matching design board */}
+          ) : (
             <div style={{
-              display: 'flex',
-              gap: '16px',
-              justifyContent: 'center',
-              alignItems: 'center',
-              overflowX: 'auto',
-              padding: '10px 0'
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: '24px',
+              padding: '48px 36px',
+              textAlign: 'center',
+              boxShadow: 'var(--shadow-sm)'
             }}>
-              <PhoneMockup src="/assets/screenshots/football-quiz-1.svg" title="Play Screen" width={165} />
-              <PhoneMockup src="/assets/screenshots/football-quiz-2.svg" title="Question Screen" width={175} style={{ transform: 'scale(1.04)', zIndex: 2 }} />
-              <PhoneMockup src="/assets/screenshots/football-quiz-3.svg" title="Leaderboard" width={165} />
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                backgroundColor: '#EFF6FF',
+                color: '#2563EB',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px'
+              }}>
+                <Sparkles size={28} />
+              </div>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', marginBottom: '8px' }}>
+                Launch Your App on TobiyaStudio
+              </h3>
+              <p style={{ fontSize: '15px', color: '#64748B', maxWidth: '540px', margin: '0 auto 24px', lineHeight: '1.6' }}>
+                Publish your Android APKs, web apps, or games directly to users with secure download gating and instant developer insights.
+              </p>
+              <Link to="/developer" className="btn btn-primary btn-lg">
+                Publish an App Now <ArrowRight size={16} />
+              </Link>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -275,11 +297,20 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid-4">
-            {featuredData.latestReleases.slice(0, 4).map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {featuredData.latestReleases && featuredData.latestReleases.length > 0 ? (
+            <div className="grid-4">
+              {featuredData.latestReleases.slice(0, 4).map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '32px', textAlign: 'center', backgroundColor: '#F8FAFC', borderRadius: '16px', border: '1px dashed #CBD5E1' }}>
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '12px' }}>No releases published yet in this category.</p>
+              <Link to="/developer" className="btn btn-primary btn-sm">
+                Publish an App
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
@@ -296,11 +327,20 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid-4">
-            {featuredData.popularProducts.slice(0, 4).map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {featuredData.popularProducts && featuredData.popularProducts.length > 0 ? (
+            <div className="grid-4">
+              {featuredData.popularProducts.slice(0, 4).map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '32px', textAlign: 'center', backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px dashed #CBD5E1' }}>
+              <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '12px' }}>Be the first developer to publish an app on TobiyaStudio.</p>
+              <Link to="/developer" className="btn btn-primary btn-sm">
+                Deploy an App
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 

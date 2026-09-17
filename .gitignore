@@ -37,3 +37,4 @@ Thumbs.db
 # Temporary agent / IDE files
 .tempmediaStorage/
 scratch/
+*.backup.json

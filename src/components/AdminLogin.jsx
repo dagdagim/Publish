@@ -50,11 +50,6 @@ export default function AdminLogin({ onLoginSuccess }) {
     }
   };
 
-  const handleQuickDemo = () => {
-    setEmail('admin@tobiyastudio.com');
-    setPassword('admin123');
-    handleLogin(null, 'admin@tobiyastudio.com', 'admin123');
-  };
 
   return (
     <div style={{
@@ -191,27 +186,7 @@ export default function AdminLogin({ onLoginSuccess }) {
           </button>
         </form>
 
-        {/* Demo Credentials Quick-Fill Hint */}
-        <div style={{
-          marginTop: '18px',
-          padding: '14px',
-          backgroundColor: '#F8FAFC',
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '11.5px', color: '#64748B', marginBottom: '8px' }}>
-            Default Demo Credentials: <strong style={{ color: '#0F172A' }}>admin@tobiyastudio.com</strong> / <strong style={{ color: '#0F172A' }}>admin123</strong>
-          </div>
-          <button
-            type="button"
-            onClick={handleQuickDemo}
-            className="btn btn-secondary btn-sm btn-block"
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px' }}
-          >
-            <Sparkles size={13} color="#2563EB" /> 1-Click Quick Demo Sign In
-          </button>
-        </div>
+
       </div>
     </div>
   );

@@ -57,17 +57,6 @@ export default function DownloadModal({ product, versions = [], onClose }) {
     }).catch(() => {});
   };
 
-  const handleQuickDemoAuth = async () => {
-    try {
-      await login('user@tobiyastudio.com', 'user123');
-      setDownloadStarted(true);
-    } catch (err) {
-      openAuthModal({
-        tab: 'login',
-        prompt: `Sign in to download ${product.name} APK.`
-      });
-    }
-  };
 
   return (
     <div style={{
@@ -313,25 +302,7 @@ export default function DownloadModal({ product, versions = [], onClose }) {
                       >
                         <LogIn size={15} /> Sign In to Existing Account
                       </button>
-                      <button
-                        type="button"
-                        onClick={handleQuickDemoAuth}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#2563EB',
-                          fontSize: '11.5px',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                          marginTop: '4px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <Sparkles size={12} /> 1-Click Quick Demo User
-                      </button>
+
                     </div>
                   </div>
                 )}

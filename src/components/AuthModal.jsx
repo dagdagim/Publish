@@ -244,11 +244,6 @@ export default function AuthModal() {
     }
   };
 
-  const handleQuickDemo = () => {
-    setEmail('user@tobiyastudio.com');
-    setPassword('user123');
-    handleLoginSubmit(null, 'user@tobiyastudio.com', 'user123');
-  };
 
   return (
     <div 
@@ -911,30 +906,6 @@ export default function AuthModal() {
                     {!loading && <ArrowRight size={16} />}
                   </button>
 
-                  {/* 1-Click Demo Login Helper */}
-                  <div style={{ marginTop: '6px', textAlign: 'center' }}>
-                    <button
-                      type="button"
-                      onClick={handleQuickDemo}
-                      disabled={loading}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#2563EB',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        backgroundColor: '#EFF6FF'
-                      }}
-                    >
-                      <Sparkles size={13} color="#2563EB" /> 1-Click Quick Demo User (user@tobiyastudio.com)
-                    </button>
-                  </div>
                 </form>
               ) : (
                 /* TAB 2: CREATE ACCOUNT WITH GMAIL OTP */
