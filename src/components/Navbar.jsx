@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Search, Menu, X, PlusCircle, Shield, Globe, Gamepad2, Smartphone, Layers, Compass, Heart, User, LogIn, LogOut, ChevronDown, UserPlus } from 'lucide-react';
+import { Search, Menu, X, PlusCircle, Shield, Globe, Gamepad2, Smartphone, Layers, Compass, Heart, User, LogIn, LogOut, ChevronDown } from 'lucide-react';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout, openAuthModal } = useAuth();
@@ -354,28 +354,16 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <button
-                type="button"
-                onClick={() => openAuthModal({ tab: 'login' })}
-                className="btn btn-secondary btn-sm"
-                id="nav-signin-btn"
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px' }}
-              >
-                <LogIn size={14} />
-                <span>Sign In</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openAuthModal({ tab: 'register' })}
-                className="btn btn-primary btn-sm"
-                id="nav-register-btn"
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px' }}
-              >
-                <UserPlus size={14} />
-                <span className="hide-mobile">Create Account</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => openAuthModal({ tab: 'login' })}
+              className="btn btn-secondary btn-sm"
+              id="nav-signin-btn"
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px' }}
+            >
+              <LogIn size={14} />
+              <span>Sign In</span>
+            </button>
           )}
 
           <Link
@@ -428,14 +416,14 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => { setMobileMenuOpen(false); openAuthModal({ tab: 'login' }); }} className="btn btn-secondary btn-block">
-                Sign In
-              </button>
-              <button onClick={() => { setMobileMenuOpen(false); openAuthModal({ tab: 'register' }); }} className="btn btn-primary btn-block">
-                Create Account
-              </button>
-            </div>
+            <button 
+              type="button"
+              onClick={() => { setMobileMenuOpen(false); openAuthModal({ tab: 'login' }); }} 
+              className="btn btn-secondary btn-block"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+            >
+              <LogIn size={15} /> Sign In
+            </button>
           )}
 
           <Link 
