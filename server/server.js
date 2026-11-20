@@ -762,6 +762,9 @@ app.get('/api/products/:id/download-package', (req, res) => {
   }
 
   if (targetPath && fs.existsSync(targetPath)) {
+    if (process.env.VERCEL) {
+      return res.redirect(`/uploads/apks/${path.basename(targetPath)}`);
+    }
     const cleanDownloadName = `${product.slug}-v${product.version || '1.0.0'}.apk`;
     const stat = fs.statSync(targetPath);
     res.setHeader('Content-Disposition', `attachment; filename="${cleanDownloadName}"`);
@@ -786,9 +789,15 @@ app.get('/api/downloads/:filename', (req, res) => {
   }
 
   const filename = req.params.filename;
+  const db = readDb();
+  const cleanBase = filename.replace(/-v[\d.]+\.apk$/i, '').replace(/-latest\.apk$/i, '').replace(/\.apk$/i, '');
+  const product = db.products.find(p => p.slug === cleanBase || filename.includes(p.slug));
 
   // When running on Vercel serverless, redirect to static asset
   if (process.env.VERCEL) {
+    if (product && product.apkUrl) {
+      return res.redirect(product.apkUrl);
+    }
     return res.redirect(`/uploads/apks/${filename}`);
   }
 
@@ -796,9 +805,6 @@ app.get('/api/downloads/:filename', (req, res) => {
 
   // If specific file is not on disk, search for matching product in database
   if (!fs.existsSync(targetPath)) {
-    const db = readDb();
-    const cleanBase = filename.replace(/-v[\d.]+\.apk$/i, '').replace(/\.apk$/i, '');
-    const product = db.products.find(p => p.slug === cleanBase || filename.includes(p.slug));
     if (product && product.apkUrl) {
       if (product.apkUrl.startsWith('/uploads/')) {
         targetPath = path.join(UPLOADS_DIR, product.apkUrl.replace(/^\/uploads\//, ''));
