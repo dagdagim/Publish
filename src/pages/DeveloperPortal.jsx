@@ -45,6 +45,7 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
 
   // File Upload State
   const [uploadingApk, setUploadingApk] = useState(false);
+  const [uploadedApkFile, setUploadedApkFile] = useState(null);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [uploadingScreenshots, setUploadingScreenshots] = useState(false);
@@ -1157,7 +1158,7 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
                         <Upload size={22} color="#2563EB" />
                       </div>
                       <div style={{ fontSize: '15px', fontWeight: '700', color: '#0F172A', marginBottom: '4px' }}>
-                        {uploadingApk ? 'Analyzing & Measuring App Package...' : 'Drag and drop your APK / App Bundle here'}
+                        {uploadingApk ? 'Analyzing & Measuring App Package...' : uploadedApkFile ? `Package Inspected: ${uploadedApkFile.name}` : 'Drag and drop your APK / App Bundle here'}
                       </div>
                       <div style={{ fontSize: '12.5px', color: '#64748B' }}>
                         or <span style={{ color: '#2563EB', fontWeight: '600' }}>browse files</span> from your computer
