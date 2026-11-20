@@ -7,9 +7,13 @@ const __dirname = path.dirname(__filename);
 const DATA_DIR = path.join(__dirname, '../data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+// Ensure data directory exists safely (read-only filesystem on serverless)
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch (e) {
+  // Ignore in serverless environments like Vercel
 }
 
 // Initial Database Schema and Seed Data
@@ -143,8 +147,13 @@ const initialData = {
   users: []
 };
 
+let memoryDb = null;
+
 // Database read and write helpers
 export function readDb() {
+  if (memoryDb) {
+    return memoryDb;
+  }
   try {
     if (!fs.existsSync(DB_FILE)) {
       writeDb(initialData);
@@ -156,23 +165,31 @@ export function readDb() {
       parsed.users = [];
       writeDb(parsed);
     }
+    memoryDb = parsed;
     return parsed;
   } catch (err) {
-    console.error('Error reading db.json:', err);
-    return initialData;
+    console.error('Error reading db.json:', err.message);
+    memoryDb = JSON.parse(JSON.stringify(initialData));
+    return memoryDb;
   }
 }
 
 export function writeDb(data) {
+  memoryDb = data;
   try {
     const tempFile = `${DB_FILE}.tmp`;
     fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf8');
     fs.renameSync(tempFile, DB_FILE);
     return true;
   } catch (err) {
-    console.error('Error writing to db.json:', err);
+    // In serverless environments like Vercel, the local disk is read-only.
+    // In-memory update succeeded; MongoDB Atlas persists it across invocations.
     return false;
   }
+}
+
+export function setMemoryDb(data) {
+  memoryDb = data;
 }
 
 export function getDb() {

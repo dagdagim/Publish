@@ -15,7 +15,7 @@ export const PlatformData = mongoose.models.PlatformData || mongoose.model('Plat
 let isConnected = false;
 
 export async function connectMongo() {
-  if (isConnected) return true;
+  if (isConnected && mongoose.connection.readyState === 1) return true;
   try {
     console.log('[MongoDB] Connecting to MongoDB Atlas...');
     await mongoose.connect(MONGODB_URI, {
@@ -34,7 +34,7 @@ export async function connectMongo() {
       console.log('[MongoDB] Initial seed stored in MongoDB.');
     } else if (existing.data && existing.data.products && existing.data.products.length > 0) {
       console.log(`[MongoDB] Synced ${existing.data.products.length} products from MongoDB Atlas.`);
-      // Sync from MongoDB to local db.json
+      // Sync from MongoDB to local db / memory cache
       writeDb(existing.data);
     }
     return true;
@@ -46,8 +46,10 @@ export async function connectMongo() {
 }
 
 export async function saveToMongo(dbData) {
-  if (!isConnected) return;
   try {
+    if (!isConnected || mongoose.connection.readyState !== 1) {
+      await connectMongo();
+    }
     await PlatformData.findOneAndUpdate(
       { key: 'main_store' },
       { data: dbData, updatedAt: new Date() },
@@ -59,5 +61,5 @@ export async function saveToMongo(dbData) {
 }
 
 export function isMongoConnected() {
-  return isConnected;
+  return isConnected && mongoose.connection.readyState === 1;
 }

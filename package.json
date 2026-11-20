@@ -7,7 +7,7 @@
     "dev": "concurrently \"node --watch server/server.js\" \"vite\"",
     "client": "vite",
     "server": "node --watch server/server.js",
-    "build": "vite build && node -e \"import fs from 'fs'; if (fs.existsSync('uploads')) fs.cpSync('uploads', 'dist/uploads', { recursive: true });\"",
+    "build": "vite build && node scripts/prepare-dist.js",
     "start": "node server/server.js",
     "preview": "vite preview"
   },

@@ -12,6 +12,7 @@ import { connectMongo, saveToMongo, isMongoConnected } from './mongo.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config();
 const UPLOADS_DIR = path.join(__dirname, '../uploads');
 
 const app = express();
@@ -96,10 +97,39 @@ app.use(cors());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
+// Ensure MongoDB Atlas connection on API requests (handles cold-starts on Vercel)
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    try {
+      if (!isMongoConnected()) {
+        await connectMongo();
+      }
+    } catch (e) {
+      // Don't crash API on Mongo connection failure
+    }
+  }
+  next();
+});
+
+// API health and status check endpoint for Vercel & monitoring
+app.get('/api', (req, res) => {
+  res.json({
+    status: 'online',
+    platform: 'TobiyaStudio Platform API',
+    mongoConnected: isMongoConnected(),
+    environment: process.env.VERCEL ? 'vercel-serverless' : 'node-server',
+    time: new Date().toISOString()
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
+
 // Helper to write both local cache and MongoDB Atlas
-function saveData(db) {
+async function saveData(db) {
   writeDb(db);
-  saveToMongo(db);
+  await saveToMongo(db);
 }
 
 // Helper to get authenticated user from Request (Bearer header or query ?token=)
@@ -173,8 +203,13 @@ const storage = multer.diskStorage({
     } else if (['.apk', '.aab', '.xapk', '.zip'].includes(ext) || file.originalname.endsWith('.apk')) {
       subfolder = 'apks';
     }
-    const dest = path.join(UPLOADS_DIR, subfolder);
-    if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+    let dest = path.join(UPLOADS_DIR, subfolder);
+    try {
+      if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+    } catch (e) {
+      dest = path.join('/tmp', 'uploads', subfolder);
+      if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+    }
     cb(null, dest);
   },
   filename: (req, file, cb) => {
@@ -686,6 +721,16 @@ app.get('/api/products/:id/download-package', (req, res) => {
   }
   saveData(db);
 
+  // If product has an external URL (e.g. GitHub Releases, Firebase, Supabase, Google Drive, S3)
+  if (product.apkUrl && (product.apkUrl.startsWith('http://') || product.apkUrl.startsWith('https://'))) {
+    return res.redirect(product.apkUrl);
+  }
+
+  // When running on Vercel serverless, redirect to static asset to avoid 4.5 MB serverless response limit
+  if (process.env.VERCEL && product.apkUrl) {
+    return res.redirect(product.apkUrl);
+  }
+
   let targetPath = null;
   // If product has a specific apkUrl assigned (e.g. from developer upload)
   if (product.apkUrl) {
@@ -741,6 +786,12 @@ app.get('/api/downloads/:filename', (req, res) => {
   }
 
   const filename = req.params.filename;
+
+  // When running on Vercel serverless, redirect to static asset
+  if (process.env.VERCEL) {
+    return res.redirect(`/uploads/apks/${filename}`);
+  }
+
   let targetPath = path.join(UPLOADS_DIR, 'apks', filename);
 
   // If specific file is not on disk, search for matching product in database
@@ -1401,9 +1452,9 @@ app.post('/api/upload/multiple', upload.array('files', 12), (req, res) => {
   res.json({ files: results });
 });
 
-// Serve built production frontend if present
+// Serve built production frontend if present (when running standalone node server)
 const DIST_DIR = path.join(__dirname, '../dist');
-if (fs.existsSync(DIST_DIR)) {
+if (!process.env.VERCEL && fs.existsSync(DIST_DIR)) {
   app.use(express.static(DIST_DIR));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/assets')) {
