@@ -326,6 +326,37 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
         developerId: 'pub-tobiyastudio'
       };
 
+      // Shrink large base64 Data URLs on-the-fly before sending over network to strictly respect 4.5 MB limit
+      const shrinkDataUrl = async (dataUrl, maxDim = 1080) => {
+        if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image')) {
+          return dataUrl;
+        }
+        if (dataUrl.length < 300000) return dataUrl; // Under ~220 KB is already safe
+
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const ratio = Math.min(maxDim / img.width, maxDim / img.height, 1);
+            const w = Math.max(1, Math.round(img.width * ratio));
+            const h = Math.max(1, Math.round(img.height * ratio));
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.75));
+          };
+          img.onerror = () => resolve(dataUrl);
+          img.src = dataUrl;
+        });
+      };
+
+      if (payload.icon) payload.icon = await shrinkDataUrl(payload.icon, 512);
+      if (payload.coverImage) payload.coverImage = await shrinkDataUrl(payload.coverImage, 1024);
+      if (payload.screenshots && payload.screenshots.length > 0) {
+        payload.screenshots = await Promise.all(payload.screenshots.map(s => shrinkDataUrl(s, 1080)));
+      }
+
       const res = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
