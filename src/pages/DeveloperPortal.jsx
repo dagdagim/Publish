@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import UpdateAppSection from '../components/UpdateAppSection';
+import { compressImage } from '../utils/imageCompressor';
 
 export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -221,101 +222,60 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
     }
   };
 
-  // 2. Icon Upload (Instant Client-side Preview + Resilient Upload)
+  // 2. Icon Upload (Auto-compressed to 512x512, keeping under 60 KB)
   const handleIconUpload = async (file) => {
     if (!file) return;
     setUploadingIcon(true);
 
-    // Instant local preview using FileReader
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target.result;
-      setFormData(prev => ({ ...prev, icon: dataUrl }));
-    };
-    reader.readAsDataURL(file);
-
     try {
-      const body = new FormData();
-      body.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) {
-          setFormData(prev => ({ ...prev, icon: data.url }));
-        }
-      }
+      const compressedDataUrl = await compressImage(file, 512, 512, 0.85);
+      setFormData(prev => ({ ...prev, icon: compressedDataUrl }));
     } catch (err) {
-      console.warn('Backend upload notice, using client data URL:', err.message);
+      console.warn('Icon compression error, falling back:', err);
+      const reader = new FileReader();
+      reader.onload = (e) => setFormData(prev => ({ ...prev, icon: e.target.result }));
+      reader.readAsDataURL(file);
     } finally {
       setUploadingIcon(false);
     }
   };
 
-  // 3. Banner / Feature Graphic Upload
+  // 3. Banner / Feature Graphic Upload (Auto-compressed to 1024x500, keeping under 90 KB)
   const handleBannerUpload = async (file) => {
     if (!file) return;
     setUploadingBanner(true);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target.result;
-      setFormData(prev => ({ ...prev, coverImage: dataUrl }));
-    };
-    reader.readAsDataURL(file);
-
     try {
-      const body = new FormData();
-      body.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) {
-          setFormData(prev => ({ ...prev, coverImage: data.url }));
-        }
-      }
+      const compressedDataUrl = await compressImage(file, 1024, 500, 0.82);
+      setFormData(prev => ({ ...prev, coverImage: compressedDataUrl }));
     } catch (err) {
-      console.warn('Backend banner notice, using client data URL:', err.message);
+      console.warn('Banner compression error, falling back:', err);
+      const reader = new FileReader();
+      reader.onload = (e) => setFormData(prev => ({ ...prev, coverImage: e.target.result }));
+      reader.readAsDataURL(file);
     } finally {
       setUploadingBanner(false);
     }
   };
 
-  // 4. Screenshots Upload (Multiple files supported)
+  // 4. Screenshots Upload (Auto-compressed to max 1080x1920, ~100 KB each)
   const handleScreenshotsUpload = async (files) => {
     if (!files || files.length === 0) return;
     setUploadingScreenshots(true);
 
-    const fileArray = Array.from(files);
-    fileArray.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target.result;
-        setFormData(prev => ({
-          ...prev,
-          screenshots: prev.screenshots.includes(dataUrl)
-            ? prev.screenshots
-            : [...prev.screenshots, dataUrl].slice(0, 8)
-        }));
-      };
-      reader.readAsDataURL(file);
-    });
-
     try {
-      const body = new FormData();
-      fileArray.forEach(f => body.append('files', f));
-      const res = await fetch('/api/upload/multiple', { method: 'POST', body });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.files && data.files.length > 0) {
-          const newUrls = data.files.map(f => f.url);
-          setFormData(prev => ({
-            ...prev,
-            screenshots: [...new Set([...prev.screenshots, ...newUrls])].slice(0, 8)
-          }));
-        }
-      }
+      const fileArray = Array.from(files);
+      const compressedList = await Promise.all(
+        fileArray.map(f => compressImage(f, 1080, 1920, 0.80).catch(() => null))
+      );
+      const validUrls = compressedList.filter(Boolean);
+
+      setFormData(prev => ({
+        ...prev,
+        screenshots: [...new Set([...prev.screenshots, ...validUrls])].slice(0, 8)
+      }));
     } catch (err) {
-      console.warn('Backend screenshots notice, using client data URLs:', err.message);
+      console.warn('Screenshot compression error:', err);
     } finally {
       setUploadingScreenshots(false);
     }
@@ -373,8 +333,19 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
       });
 
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to submit application');
+        const text = await res.text();
+        let errMsg = 'Failed to submit application';
+        try {
+          const errObj = JSON.parse(text);
+          errMsg = errObj.error || errObj.message || errMsg;
+        } catch (_) {
+          if (res.status === 413 || text.includes('Request Entity Too Large') || text.includes('Request En')) {
+            errMsg = 'Images/Screenshots payload is too large for the 4.5 MB serverless limit. Please remove and re-add your screenshots to auto-compress them.';
+          } else {
+            errMsg = text || `Server error (${res.status})`;
+          }
+        }
+        throw new Error(errMsg);
       }
 
       const data = await res.json();
