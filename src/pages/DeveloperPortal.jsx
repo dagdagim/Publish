@@ -120,9 +120,34 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
 
   const [newFeature, setNewFeature] = useState('');
 
+  const isWebOnly = formData.platform === 'Web';
+  const isHybrid = formData.platform === 'Android • Web';
+  const requiresApk = !isWebOnly;
+
   // Handle Text Changes
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'platform') {
+      if (value === 'Web') {
+        setFormData(prev => ({
+          ...prev,
+          platform: value,
+          fileSize: prev.fileSize && prev.fileSize !== 'Web App' ? prev.fileSize : 'Web App',
+          minRequirement: prev.minRequirement === 'Android 8.0+ (API 26)' ? 'Any Modern Web Browser (PWA)' : prev.minRequirement,
+          targetSdk: prev.targetSdk === 'Android 14 (API 34)' ? 'HTML5 / Modern Browsers' : prev.targetSdk
+        }));
+        return;
+      } else if (value === 'Android') {
+        setFormData(prev => ({
+          ...prev,
+          platform: value,
+          fileSize: prev.fileSize === 'Web App' ? '' : prev.fileSize,
+          minRequirement: prev.minRequirement === 'Any Modern Web Browser (PWA)' ? 'Android 8.0+ (API 26)' : prev.minRequirement,
+          targetSdk: prev.targetSdk === 'HTML5 / Modern Browsers' ? 'Android 14 (API 34)' : prev.targetSdk
+        }));
+        return;
+      }
+    }
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -301,12 +326,13 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
         platform: formData.platform || 'Android',
         version: formData.version || '1.0.0',
         versionCode: Number(formData.versionCode) || 1,
-        fileSize: formData.fileSize || '25 MB',
+        fileSize: isWebOnly ? 'Web App' : (formData.fileSize || '25 MB'),
         webUrl: formData.webUrl || null,
-        apkUrl: formData.apkUrl || null,
-        packageId: formData.packageId || `com.tobiyastudio.${Date.now()}`,
-        minRequirement: formData.minRequirement || 'Android 8.0+ (API 26)',
-        targetSdk: formData.targetSdk || 'Android 14 (API 34)',
+        apkUrl: isWebOnly ? null : (formData.apkUrl || null),
+        isWebApp: isWebOnly || isHybrid,
+        packageId: formData.packageId || (isWebOnly ? `web.app.${Date.now()}` : `com.tobiyastudio.${Date.now()}`),
+        minRequirement: isWebOnly ? (formData.minRequirement || 'Any Modern Web Browser (PWA)') : (formData.minRequirement || 'Android 8.0+ (API 26)'),
+        targetSdk: isWebOnly ? 'HTML5 / Modern Browsers' : (formData.targetSdk || 'Android 14 (API 34)'),
         track: formData.track || 'Production',
         status: 'Published',
         releaseNotes: formData.releaseNotes || 'Initial official release on TobiyaStudio.',
@@ -314,7 +340,7 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
         coverImage: formData.coverImage || '/assets/covers/kpi-tracker-cover.svg',
         screenshots: formData.screenshots && formData.screenshots.length > 0 ? formData.screenshots : ['/assets/screenshots/football-quiz-1.svg', '/assets/screenshots/football-quiz-2.svg'],
         features: formData.features && formData.features.length > 0 ? formData.features : ['High performance architecture', 'Modern responsive design', 'Built-in security updates'],
-        tags: typeof formData.tags === 'string' ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : (formData.tags || ['app', 'android']),
+        tags: typeof formData.tags === 'string' ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : (formData.tags || ['app', isWebOnly ? 'web' : 'android']),
         contentRating: calculatedRating.rating,
         contentRatingDetails: formData.contentRatingQuestions,
         dataSafety: formData.dataSafety,
@@ -327,11 +353,11 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
       };
 
       // Shrink large base64 Data URLs on-the-fly before sending over network to strictly respect 4.5 MB limit
-      const shrinkDataUrl = async (dataUrl, maxDim = 1080) => {
+      const shrinkDataUrl = async (dataUrl, maxDim = 900) => {
         if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image')) {
           return dataUrl;
         }
-        if (dataUrl.length < 300000) return dataUrl; // Under ~220 KB is already safe
+        if (dataUrl.length < 200000) return dataUrl; // Under ~150 KB is already safe
 
         return new Promise((resolve) => {
           const img = new Image();
@@ -344,7 +370,7 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
             canvas.height = h;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/jpeg', 0.75));
+            resolve(canvas.toDataURL('image/jpeg', 0.72));
           };
           img.onerror = () => resolve(dataUrl);
           img.src = dataUrl;
@@ -352,9 +378,9 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
       };
 
       if (payload.icon) payload.icon = await shrinkDataUrl(payload.icon, 512);
-      if (payload.coverImage) payload.coverImage = await shrinkDataUrl(payload.coverImage, 1024);
+      if (payload.coverImage) payload.coverImage = await shrinkDataUrl(payload.coverImage, 960);
       if (payload.screenshots && payload.screenshots.length > 0) {
-        payload.screenshots = await Promise.all(payload.screenshots.map(s => shrinkDataUrl(s, 1080)));
+        payload.screenshots = await Promise.all(payload.screenshots.map(s => shrinkDataUrl(s, 960)));
       }
 
       const res = await fetch('/api/products', {
@@ -373,7 +399,7 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
           if (res.status === 413 || text.includes('Request Entity Too Large') || text.includes('Request En')) {
             errMsg = 'Images/Screenshots payload is too large for the 4.5 MB serverless limit. Please remove and re-add your screenshots to auto-compress them.';
           } else {
-            errMsg = text || `Server error (${res.status})`;
+            errMsg = text ? text.substring(0, 200) : `Server error (${res.status})`;
           }
         }
         throw new Error(errMsg);
@@ -397,7 +423,14 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
     { title: 'Short Tagline (max 80 chars)', valid: Boolean(formData.shortDescription && formData.shortDescription.length <= 80) },
     { title: 'App Icon / Logo (512x512)', valid: Boolean(formData.icon) },
     { title: 'Screenshots (At least 2 required)', valid: formData.screenshots.length >= 2 },
-    { title: 'App Package / File Size Verified', valid: Boolean(formData.fileSize) },
+    ...(isWebOnly ? [
+      { title: 'Production Live Web App URL Verified', valid: Boolean(formData.webUrl && formData.webUrl.startsWith('http')) }
+    ] : isHybrid ? [
+      { title: 'Production Live Web App URL', valid: Boolean(formData.webUrl && formData.webUrl.startsWith('http')) },
+      { title: 'Android Package (APK / Direct Download URL)', valid: Boolean(formData.fileSize || formData.apkUrl) }
+    ] : [
+      { title: 'App Package / File Size Verified', valid: Boolean(formData.fileSize || formData.apkUrl) }
+    ]),
     { title: 'Privacy Policy URL', valid: Boolean(formData.privacyPolicyUrl && formData.privacyPolicyUrl.startsWith('http')) },
     { title: 'Content Rating Form Completed', valid: true },
     { title: 'Data Safety Section Declared', valid: true }
@@ -406,6 +439,14 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
   const totalChecks = checks.length;
   const passedChecks = checks.filter(c => c.valid).length;
   const readinessPercent = Math.round((passedChecks / totalChecks) * 100);
+
+  const canPublish = Boolean(
+    formData.name &&
+    formData.name.trim().length >= 3 &&
+    (isWebOnly
+      ? (formData.webUrl && formData.webUrl.startsWith('http'))
+      : (formData.fileSize || formData.apkUrl))
+  );
 
   // Live preview mockup product
   const previewProduct = {
@@ -417,7 +458,8 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
     icon: formData.icon || '/assets/icons/kpi-tracker.svg',
     rating: 5.0,
     reviewCount: 1,
-    isWebApp: formData.platform === 'Web' || formData.platform.includes('Web'),
+    isWebApp: isWebOnly || isHybrid,
+    fileSize: isWebOnly ? 'Web App' : (formData.fileSize || 'Responsive'),
     slug: 'preview'
   };
 
@@ -569,26 +611,40 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
             🎉 {successProduct.name} is Live!
           </h2>
           <p style={{ color: '#475569', fontSize: '15px', lineHeight: '1.6', marginBottom: '24px' }}>
-            Your application <strong>{successProduct.name}</strong> (v{successProduct.version}, {successProduct.fileSize}) has been updated in the store catalog. Users can now view release notes and download the updated package!
+            Your application <strong>{successProduct.name}</strong> (v{successProduct.version}{successProduct.fileSize ? `, ${successProduct.fileSize}` : ''}) is now live on TobiyaStudio! Users can discover it in the store catalog and access it immediately.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '28px' }}>
+            {successProduct.isWebApp && successProduct.webUrl && (
+              <a
+                href={successProduct.webUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary btn-lg"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '15px', height: '48px' }}
+              >
+                <Globe size={18} /> Launch Live Web App <ExternalLink size={15} />
+              </a>
+            )}
+
             <Link
               to={`/product/${successProduct.slug}`}
-              className="btn btn-primary btn-lg"
+              className={`btn ${successProduct.isWebApp && successProduct.webUrl ? 'btn-secondary' : 'btn-primary'} btn-lg`}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '15px', height: '48px' }}
             >
-              View Live Store Page & Test Download →
+              View Live Store Page →
             </Link>
 
-            <a
-              href={`/api/products/${successProduct.id}/download-package`}
-              download={`${successProduct.slug}-v${successProduct.version}.apk`}
-              className="btn btn-secondary btn-lg"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14.5px', textDecoration: 'none', height: '46px' }}
-            >
-              <Download size={17} /> Direct Download Updated APK ({successProduct.fileSize})
-            </a>
+            {(!successProduct.isWebApp || successProduct.platform !== 'Web') && (
+              <a
+                href={`/api/products/${successProduct.id}/download-package`}
+                download={`${successProduct.slug}-v${successProduct.version}.apk`}
+                className="btn btn-secondary btn-lg"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14.5px', textDecoration: 'none', height: '46px' }}
+              >
+                <Download size={17} /> Direct Download APK ({successProduct.fileSize || 'Standard'})
+              </a>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -596,10 +652,10 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
               onClick={() => { setSuccessProduct(null); }}
               className="btn btn-outline btn-sm"
             >
-              Publish / Update Another Application
+              Publish Another Application
             </button>
-            <Link to="/apps" className="btn btn-outline btn-sm">
-              Explore All Android Apps
+            <Link to={isWebOnly ? "/web-apps" : "/apps"} className="btn btn-outline btn-sm">
+              {isWebOnly ? "Explore All Web Apps" : "Explore All Android Apps"}
             </Link>
           </div>
         </div>
@@ -624,10 +680,10 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
 
             <button
               onClick={() => setCurrentStep(2)}
-              className={`console-step-btn ${currentStep === 2 ? 'active' : ''} ${formData.fileSize ? 'completed' : ''}`}
+              className={`console-step-btn ${currentStep === 2 ? 'active' : ''} ${isWebOnly ? (formData.webUrl ? 'completed' : '') : (formData.fileSize || formData.apkUrl ? 'completed' : '')}`}
             >
               <span className="console-step-number">2</span>
-              <span>App Releases & Package</span>
+              <span>{isWebOnly ? 'Web Deployment & URL' : 'App Releases & Package'}</span>
             </button>
 
             <ChevronRight size={14} color="#CBD5E1" />
@@ -1101,152 +1157,301 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
                       className="btn btn-primary btn-lg"
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                     >
-                      Continue to App Releases <ArrowRight size={16} />
+                      {isWebOnly ? 'Continue to Web Deployment' : 'Continue to App Releases'} <ArrowRight size={16} />
                     </button>
                   </div>
                 </div>
               )}
 
               {/* ==================================================== */}
-              {/* STEP 2: APP RELEASES & AUTOMATIC SIZE DETECTION     */}
+              {/* STEP 2: APP RELEASES OR WEB DEPLOYMENT              */}
               {/* ==================================================== */}
               {currentStep === 2 && (
                 <div>
-                  <div className="console-card">
-                    <div className="console-card-header">
-                      <div className="console-card-title">
-                        <Upload size={18} color="#2563EB" /> 1. Upload App Bundle or APK
-                      </div>
-                      <span style={{ fontSize: '12px', color: '#64748B' }}>Automatic app size calculation & artifact verification</span>
-                    </div>
-
-                    <p style={{ fontSize: '13.5px', color: '#64748B', marginBottom: '18px' }}>
-                      Drop your compiled Android package (<strong>.apk</strong>, <strong>.aab</strong>, or <strong>.zip</strong>). TobiyaStudio will automatically inspect and calculate the exact file size, version name, and package ID.
-                    </p>
-
-                    {/* Drag and Drop Zone */}
-                    <input
-                      type="file"
-                      ref={apkInputRef}
-                      accept=".apk,.aab,.xapk,.zip"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleApkUpload(e.target.files[0])}
-                    />
-
-                    <div
-                      className="console-dropzone"
-                      onClick={() => apkInputRef.current?.click()}
-                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                      onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                          handleApkUpload(e.dataTransfer.files[0]);
-                        }
-                      }}
-                      style={{ minHeight: '160px', marginBottom: '20px', cursor: 'pointer' }}
-                    >
-                      <div style={{
-                        width: '48px',
-                        height: '48px',
-                        borderRadius: '50%',
-                        backgroundColor: '#EFF6FF',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: '12px'
-                      }}>
-                        <Upload size={22} color="#2563EB" />
-                      </div>
-                      <div style={{ fontSize: '15px', fontWeight: '700', color: '#0F172A', marginBottom: '4px' }}>
-                        {uploadingApk ? 'Analyzing & Measuring App Package...' : uploadedApkFile ? `Package Inspected: ${uploadedApkFile.name}` : 'Drag and drop your APK / App Bundle here'}
-                      </div>
-                      <div style={{ fontSize: '12.5px', color: '#64748B' }}>
-                        or <span style={{ color: '#2563EB', fontWeight: '600' }}>browse files</span> from your computer
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px' }}>
-                        Supports APK, AAB, ZIP up to 500 MB
-                      </div>
-                    </div>
-
-                    {apkError && (
-                      <div style={{ backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#DC2626', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>
-                        {apkError}
-                      </div>
-                    )}
-
-                    {/* Detected Artifact Card (Play Console Inspector) */}
-                    <div className="console-artifact-card">
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {formData.fileSize ? (
-                            <CheckCircle2 size={18} color="#16A34A" />
-                          ) : (
-                            <AlertCircle size={18} color="#D97706" />
-                          )}
-                          <span style={{ fontWeight: '700', fontSize: '14px', color: '#0F172A' }}>
-                            Package Artifact Specifications
-                          </span>
+                  {/* WEB DEPLOYMENT SECTION (Rendered if platform is Web or Android • Web) */}
+                  {(isWebOnly || isHybrid) && (
+                    <div className="console-card">
+                      <div className="console-card-header">
+                        <div className="console-card-title">
+                          <Globe size={18} color="#2563EB" /> 1. Web Application Deployment & Live URL
                         </div>
-                        <span className={`badge ${formData.fileSize ? 'badge-accent' : 'badge-platform'}`} style={{ fontSize: '11px' }}>
-                          {formData.fileSize ? 'Size Detected' : 'Pending Package'}
+                        <span className="badge badge-accent" style={{ fontSize: '11px' }}>
+                          Cloud Hosted Web App
                         </span>
                       </div>
 
-                      {formData.fileSize ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '14px', paddingTop: '8px' }}>
-                          {/* Real Detected App Size Highlight */}
+                      <p style={{ fontSize: '13.5px', color: '#64748B', marginBottom: '18px' }}>
+                        Provide your live production Web App URL. Visitors on TobiyaStudio can launch or install your web app directly into their browser with zero download friction.
+                      </p>
+
+                      {/* Web App Live URL */}
+                      <div style={{ marginBottom: '18px' }}>
+                        <label className="input-label">Production Web App Live URL *</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input
+                            type="url"
+                            name="webUrl"
+                            className="input-control"
+                            placeholder="https://your-web-app.vercel.app or https://myapp.com"
+                            value={formData.webUrl || ''}
+                            onChange={handleChange}
+                            required={isWebOnly}
+                            id="form-web-url"
+                            style={{ flex: 1 }}
+                          />
+                          {formData.webUrl && formData.webUrl.startsWith('http') && (
+                            <a
+                              href={formData.webUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-secondary"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+                            >
+                              <ExternalLink size={14} /> Test Link
+                            </a>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '4px' }}>
+                          Enter the full HTTPS URL where your web app is hosted (e.g. Vercel, Netlify, Cloudflare, or custom domain).
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
+                        <div>
+                          <label className="input-label">Hosting Provider</label>
+                          <select
+                            name="hostingProvider"
+                            className="input-control"
+                            value={formData.hostingProvider || 'Vercel'}
+                            onChange={handleChange}
+                          >
+                            <option value="Vercel">Vercel</option>
+                            <option value="Netlify">Netlify</option>
+                            <option value="Cloudflare Pages">Cloudflare Pages</option>
+                            <option value="Firebase Hosting">Firebase Hosting</option>
+                            <option value="GitHub Pages">GitHub Pages</option>
+                            <option value="Render">Render</option>
+                            <option value="AWS Amplify">AWS Amplify</option>
+                            <option value="Custom Domain / Server">Custom Domain / VPS</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="input-label">Architecture / PWA Support</label>
+                          <select
+                            name="webArchitecture"
+                            className="input-control"
+                            value={formData.webArchitecture || 'Progressive Web App (PWA)'}
+                            onChange={handleChange}
+                          >
+                            <option value="Progressive Web App (PWA)">Progressive Web App (PWA - Offline & Installable)</option>
+                            <option value="Single Page Application (SPA)">Single Page Application (React / Vue / Vite)</option>
+                            <option value="Full-Stack SSR">Full-Stack SSR (Next.js / Nuxt / SvelteKit)</option>
+                            <option value="Static Web App">Static Web Application (HTML / CSS / JS)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Web App Specification Card */}
+                      <div className="console-artifact-card">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {formData.webUrl && formData.webUrl.startsWith('http') ? (
+                              <CheckCircle2 size={18} color="#16A34A" />
+                            ) : (
+                              <AlertCircle size={18} color="#D97706" />
+                            )}
+                            <span style={{ fontWeight: '700', fontSize: '14px', color: '#0F172A' }}>
+                              Web Deployment Specifications
+                            </span>
+                          </div>
+                          <span className={`badge ${formData.webUrl && formData.webUrl.startsWith('http') ? 'badge-accent' : 'badge-platform'}`} style={{ fontSize: '11px' }}>
+                            {formData.webUrl && formData.webUrl.startsWith('http') ? 'Live URL Verified' : 'Pending URL'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '14px', paddingTop: '10px' }}>
                           <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                            <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '2px' }}>App File Size</div>
-                            <div style={{ fontSize: '18px', fontWeight: '800', color: '#2563EB' }}>
-                              {formData.fileSize}
+                            <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '2px' }}>Distribution Type</div>
+                            <div style={{ fontSize: '16px', fontWeight: '800', color: '#2563EB' }}>
+                              Cloud Hosted
                             </div>
                             <div style={{ fontSize: '10px', color: '#94A3B8' }}>
-                              {formData.fileSizeBytes ? `${formData.fileSizeBytes.toLocaleString()} bytes` : 'Calculated'}
+                              Instant Browser Launch
                             </div>
                           </div>
 
                           <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
                             <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '2px' }}>Release Version</div>
                             <div style={{ fontSize: '16px', fontWeight: '700', color: '#0F172A' }}>
-                              v{formData.version}
-                            </div>
-                            <div style={{ fontSize: '10px', color: '#94A3B8' }}>
-                              Code: {formData.versionCode}
-                            </div>
-                          </div>
-
-                          <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                            <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '2px' }}>Package ID</div>
-                            <div style={{ fontSize: '12px', fontWeight: '600', color: '#0F172A', wordBreak: 'break-all' }}>
-                              {formData.packageId || 'com.tobiyastudio.app'}
-                            </div>
-                          </div>
-
-                          <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                            <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '2px' }}>Target Architecture</div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A' }}>
-                              arm64-v8a, x86_64
+                              v{formData.version || '1.0.0'}
                             </div>
                             <div style={{ fontSize: '10px', color: '#16A34A' }}>
-                              API 26 to API 34+
+                              Always Up-to-Date
+                            </div>
+                          </div>
+
+                          <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                            <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '2px' }}>Compatibility</div>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A' }}>
+                              Chrome, Safari, Edge
+                            </div>
+                            <div style={{ fontSize: '10px', color: '#16A34A' }}>
+                              PWA & Responsive
+                            </div>
+                          </div>
+
+                          <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                            <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '2px' }}>Security Protocol</div>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#16A34A' }}>
+                              HTTPS / TLS
+                            </div>
+                            <div style={{ fontSize: '10px', color: '#64748B' }}>
+                              Zero Local Storage Footprint
                             </div>
                           </div>
                         </div>
-                      ) : (
-                        <div style={{ padding: '20px 14px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
-                          Upload an APK or AAB bundle above to measure and inspect your app package specifications.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ANDROID PACKAGE SECTION (Only rendered if platform is NOT Web-only) */}
+                  {requiresApk && (
+                    <div className="console-card">
+                      <div className="console-card-header">
+                        <div className="console-card-title">
+                          <Upload size={18} color="#2563EB" /> {isHybrid ? '2. Upload Android APK Package' : '1. Upload App Bundle or APK'}
+                        </div>
+                        <span style={{ fontSize: '12px', color: '#64748B' }}>Automatic app size calculation & artifact verification</span>
+                      </div>
+
+                      <p style={{ fontSize: '13.5px', color: '#64748B', marginBottom: '18px' }}>
+                        Drop your compiled Android package (<strong>.apk</strong>, <strong>.aab</strong>, or <strong>.zip</strong>). TobiyaStudio will automatically inspect and calculate the exact file size, version name, and package ID.
+                      </p>
+
+                      {/* Drag and Drop Zone */}
+                      <input
+                        type="file"
+                        ref={apkInputRef}
+                        accept=".apk,.aab,.xapk,.zip"
+                        style={{ display: 'none' }}
+                        onChange={(e) => handleApkUpload(e.target.files[0])}
+                      />
+
+                      <div
+                        className="console-dropzone"
+                        onClick={() => apkInputRef.current?.click()}
+                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                            handleApkUpload(e.dataTransfer.files[0]);
+                          }
+                        }}
+                        style={{ minHeight: '160px', marginBottom: '20px', cursor: 'pointer' }}
+                      >
+                        <div style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '50%',
+                          backgroundColor: '#EFF6FF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginBottom: '12px'
+                        }}>
+                          <Upload size={22} color="#2563EB" />
+                        </div>
+                        <div style={{ fontSize: '15px', fontWeight: '700', color: '#0F172A', marginBottom: '4px' }}>
+                          {uploadingApk ? 'Analyzing & Measuring App Package...' : uploadedApkFile ? `Package Inspected: ${uploadedApkFile.name}` : 'Drag and drop your APK / App Bundle here'}
+                        </div>
+                        <div style={{ fontSize: '12.5px', color: '#64748B' }}>
+                          or <span style={{ color: '#2563EB', fontWeight: '600' }}>browse files</span> from your computer
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px' }}>
+                          Supports APK, AAB, ZIP up to 500 MB
+                        </div>
+                      </div>
+
+                      {apkError && (
+                        <div style={{ backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#DC2626', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>
+                          {apkError}
                         </div>
                       )}
-                    </div>
-                  </div>
 
-                  {/* Release Track & Notes */}
+                      {/* Detected Artifact Card */}
+                      <div className="console-artifact-card">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {formData.fileSize ? (
+                              <CheckCircle2 size={18} color="#16A34A" />
+                            ) : (
+                              <AlertCircle size={18} color="#D97706" />
+                            )}
+                            <span style={{ fontWeight: '700', fontSize: '14px', color: '#0F172A' }}>
+                              Package Artifact Specifications
+                            </span>
+                          </div>
+                          <span className={`badge ${formData.fileSize ? 'badge-accent' : 'badge-platform'}`} style={{ fontSize: '11px' }}>
+                            {formData.fileSize ? 'Size Detected' : 'Pending Package'}
+                          </span>
+                        </div>
+
+                        {formData.fileSize ? (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '14px', paddingTop: '8px' }}>
+                            <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                              <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '2px' }}>App File Size</div>
+                              <div style={{ fontSize: '18px', fontWeight: '800', color: '#2563EB' }}>
+                                {formData.fileSize}
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#94A3B8' }}>
+                                {formData.fileSizeBytes ? `${formData.fileSizeBytes.toLocaleString()} bytes` : 'Calculated'}
+                              </div>
+                            </div>
+
+                            <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                              <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '2px' }}>Release Version</div>
+                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#0F172A' }}>
+                                v{formData.version}
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#94A3B8' }}>
+                                Code: {formData.versionCode}
+                              </div>
+                            </div>
+
+                            <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                              <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '2px' }}>Package ID</div>
+                              <div style={{ fontSize: '12px', fontWeight: '600', color: '#0F172A', wordBreak: 'break-all' }}>
+                                {formData.packageId || 'com.tobiyastudio.app'}
+                              </div>
+                            </div>
+
+                            <div style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                              <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '2px' }}>Target Architecture</div>
+                              <div style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A' }}>
+                                arm64-v8a, x86_64
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#16A34A' }}>
+                                API 26 to API 34+
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ padding: '20px 14px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
+                            Upload an APK or AAB bundle above to measure and inspect your app package specifications.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* RELEASE TRACK & ROLLOUT NOTES */}
                   <div className="console-card">
                     <div className="console-card-header">
                       <div className="console-card-title">
-                        <Layers size={18} color="#2563EB" /> 2. Release Track & Rollout Notes
+                        <Layers size={18} color="#2563EB" /> {isWebOnly ? '2. Release Track & Rollout Notes' : isHybrid ? '3. Release Track & Rollout Notes' : '2. Release Track & Rollout Notes'}
                       </div>
                     </div>
 
@@ -1259,14 +1464,14 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
                           value={formData.track}
                           onChange={handleChange}
                         >
-                          <option value="Production">Production (Immediate public download)</option>
+                          <option value="Production">Production (Immediate public availability)</option>
                           <option value="Open Beta">Open Testing (Beta track)</option>
                           <option value="Internal">Internal QA Testing</option>
                         </select>
                       </div>
 
                       <div>
-                        <label className="input-label">Target SDK / Min OS Requirement</label>
+                        <label className="input-label">{isWebOnly ? 'Target Environment' : 'Target SDK / Min OS Requirement'}</label>
                         <input
                           type="text"
                           name="minRequirement"
@@ -1289,21 +1494,23 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
                       />
                     </div>
 
-                    {/* Direct APK Download URL */}
-                    <div style={{ marginBottom: '18px' }}>
-                      <label className="input-label">APK Package Direct Download URL (GitHub Releases / Cloud Storage)</label>
-                      <input
-                        type="text"
-                        name="apkUrl"
-                        className="input-control"
-                        placeholder="e.g. https://github.com/dagdagim/Publish/releases/download/.../app.apk"
-                        value={formData.apkUrl || ''}
-                        onChange={handleChange}
-                      />
-                      <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '4px' }}>
-                        For Vercel hosting: Host APK builds &gt; 4.5 MB on <strong>GitHub Releases</strong> (free up to 2 GB) or Google Drive, then paste the direct download URL here.
+                    {/* Direct APK Download URL (only if requires APK) */}
+                    {requiresApk && (
+                      <div style={{ marginBottom: '18px' }}>
+                        <label className="input-label">APK Package Direct Download URL (GitHub Releases / Cloud Storage)</label>
+                        <input
+                          type="text"
+                          name="apkUrl"
+                          className="input-control"
+                          placeholder="e.g. https://github.com/dagdagim/Publish/releases/download/.../app.apk"
+                          value={formData.apkUrl || ''}
+                          onChange={handleChange}
+                        />
+                        <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '4px' }}>
+                          For Vercel hosting: Host APK builds &gt; 4.5 MB on <strong>GitHub Releases</strong> (free up to 2 GB) or Google Drive, then paste the direct download URL here.
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Navigation */}
@@ -1591,7 +1798,7 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
                       className="btn btn-secondary"
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                     >
-                      <ArrowLeft size={16} /> Back to Releases
+                      <ArrowLeft size={16} /> Back to {isWebOnly ? 'Web Deployment' : 'Releases'}
                     </button>
 
                     <button
@@ -1668,16 +1875,24 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
                           <strong style={{ color: '#0F172A' }}>{formData.category}</strong>
                         </div>
                         <div>
-                          <span style={{ color: '#64748B' }}>Artifact Size: </span>
-                          <strong style={{ color: '#2563EB' }}>{formData.fileSize}</strong>
+                          <span style={{ color: '#64748B' }}>Platform: </span>
+                          <strong style={{ color: '#0F172A' }}>{formData.platform}</strong>
                         </div>
+                        <div>
+                          <span style={{ color: '#64748B' }}>{isWebOnly ? 'Deployment Type: ' : 'Artifact Size: '}</span>
+                          <strong style={{ color: '#2563EB' }}>{isWebOnly ? 'Web App (Cloud Hosted)' : (formData.fileSize || 'Pending')}</strong>
+                        </div>
+                        {formData.webUrl && (
+                          <div style={{ gridColumn: 'span 2' }}>
+                            <span style={{ color: '#64748B' }}>Live Web URL: </span>
+                            <a href={formData.webUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#2563EB', fontWeight: '600', wordBreak: 'break-all' }}>
+                              {formData.webUrl} ↗
+                            </a>
+                          </div>
+                        )}
                         <div>
                           <span style={{ color: '#64748B' }}>Version: </span>
                           <strong style={{ color: '#0F172A' }}>v{formData.version}</strong>
-                        </div>
-                        <div>
-                          <span style={{ color: '#64748B' }}>Content Rating: </span>
-                          <strong style={{ color: calculatedRating.color }}>{calculatedRating.rating}</strong>
                         </div>
                         <div>
                           <span style={{ color: '#64748B' }}>Release Track: </span>
@@ -1690,13 +1905,24 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
                     <button
                       type="button"
                       onClick={handleSubmitPublish}
-                      disabled={submitting || (!formData.name && !formData.fileSize)}
+                      disabled={submitting || !canPublish}
                       className="btn btn-primary btn-block btn-lg"
                       id="publish-to-tobiyastudio-btn"
                       style={{ height: '48px', fontSize: '15px' }}
                     >
-                      {submitting ? 'Verifying & Deploying to TobiyaStudio...' : 'Roll Out to Production & Publish App'}
+                      {submitting
+                        ? 'Verifying & Deploying to TobiyaStudio...'
+                        : isWebOnly
+                        ? 'Deploy & Publish Web App'
+                        : 'Roll Out to Production & Publish App'}
                     </button>
+                    {!canPublish && (
+                      <div style={{ textAlign: 'center', fontSize: '12px', color: '#D97706', marginTop: '8px' }}>
+                        {isWebOnly
+                          ? 'Please enter a valid production Web App URL in Step 2 to publish.'
+                          : 'Please provide an APK package or direct download URL in Step 2 to publish.'}
+                      </div>
+                    )}
                   </div>
 
                   {/* Navigation */}
@@ -1736,10 +1962,10 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <div style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Smartphone size={15} color="#2563EB" /> Device Frame
+                    {isWebOnly ? <Globe size={15} color="#2563EB" /> : <Smartphone size={15} color="#2563EB" />} {isWebOnly ? 'Web App Viewport' : 'Device Frame'}
                   </div>
                   <span style={{ fontSize: '11px', color: '#64748B' }}>
-                    {formData.fileSize || 'Responsive'}
+                    {isWebOnly ? 'Cloud Hosted Web' : (formData.fileSize || 'Responsive')}
                   </span>
                 </div>
 
