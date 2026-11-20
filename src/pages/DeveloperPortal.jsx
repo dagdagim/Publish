@@ -162,6 +162,31 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
   // 1. APK / Package File Upload & Auto Size Calculation
   const handleApkUpload = async (file) => {
     if (!file) return;
+
+    // Auto-measure file size and detect package info directly in browser
+    const sizeInMB = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+    const verMatch = file.name.match(/v?(\d+\.\d+(\.\d+)?)/i);
+    const detectedVer = verMatch ? verMatch[1] : null;
+    const cleanBase = file.name.replace(/\.[^/.]+$/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    setFormData(prev => ({
+      ...prev,
+      fileSize: sizeInMB,
+      fileSizeBytes: file.size,
+      version: detectedVer || prev.version,
+      packageId: prev.packageId || `com.tobiyastudio.${cleanBase || 'app'}`,
+      name: prev.name || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+    }));
+    setUploadedApkFile(file);
+
+    // Vercel Serverless Functions have a strict 4.5 MB request payload limit
+    if (file.size > 4.5 * 1024 * 1024) {
+      setApkError(
+        `Package ${file.name} (${sizeInMB}) measured. Because Vercel serverless functions limit direct uploads to 4.5 MB, please enter a direct download URL (e.g. from GitHub Releases, Google Drive, or Firebase) in the APK URL field below.`
+      );
+      return;
+    }
+
     setUploadingApk(true);
     setApkError(null);
 
@@ -1223,6 +1248,22 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
                         value={formData.releaseNotes}
                         onChange={handleChange}
                       />
+                    </div>
+
+                    {/* Direct APK Download URL */}
+                    <div style={{ marginBottom: '18px' }}>
+                      <label className="input-label">APK Package Direct Download URL (GitHub Releases / Cloud Storage)</label>
+                      <input
+                        type="text"
+                        name="apkUrl"
+                        className="input-control"
+                        placeholder="e.g. https://github.com/dagdagim/Publish/releases/download/.../app.apk"
+                        value={formData.apkUrl || ''}
+                        onChange={handleChange}
+                      />
+                      <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '4px' }}>
+                        For Vercel hosting: Host APK builds &gt; 4.5 MB on <strong>GitHub Releases</strong> (free up to 2 GB) or Google Drive, then paste the direct download URL here.
+                      </div>
                     </div>
                   </div>
 

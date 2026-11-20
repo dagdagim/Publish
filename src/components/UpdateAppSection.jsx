@@ -113,6 +113,26 @@ export default function UpdateAppSection({ initialSlug, onUpdateSuccess }) {
   // 1. APK Upload for update
   const handleApkUpload = async (file) => {
     if (!file) return;
+
+    // Auto-measure file size and detect version directly in browser
+    const sizeInMB = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+    const verMatch = file.name.match(/v?(\d+\.\d+(\.\d+)?)/i);
+    const detectedVersion = verMatch ? verMatch[1] : null;
+
+    setUpdateForm(prev => ({
+      ...prev,
+      fileSize: sizeInMB,
+      version: detectedVersion || prev.version
+    }));
+    setUploadedApkName(file.name);
+
+    if (file.size > 4.5 * 1024 * 1024) {
+      setError(
+        `Package ${file.name} (${sizeInMB}) measured. Because Vercel serverless functions limit direct uploads to 4.5 MB, please enter a direct download URL (e.g. from GitHub Releases, Google Drive, or Firebase) in the APK URL field below.`
+      );
+      return;
+    }
+
     setUploadingApk(true);
     setError(null);
 
@@ -130,7 +150,6 @@ export default function UpdateAppSection({ initialSlug, onUpdateSuccess }) {
         apkUrl: data.url,
         version: data.detectedVersion || prev.version
       }));
-      setUploadedApkName(file.name);
     } catch (err) {
       setError('Package upload error: ' + err.message);
     } finally {
@@ -553,6 +572,21 @@ export default function UpdateAppSection({ initialSlug, onUpdateSuccess }) {
                 <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '4px' }}>
                   Must be greater than previous build code ({selectedApp.versionCode || 1})
                 </div>
+              </div>
+            </div>
+
+            {/* Direct APK Download URL */}
+            <div style={{ marginBottom: '18px' }}>
+              <label className="input-label">APK Package Direct URL (GitHub Releases / Cloud Storage)</label>
+              <input
+                type="text"
+                value={updateForm.apkUrl || ''}
+                onChange={(e) => setUpdateForm(prev => ({ ...prev, apkUrl: e.target.value }))}
+                placeholder="e.g. https://github.com/dagdagim/Publish/releases/download/.../app.apk"
+                className="input-control"
+              />
+              <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '4px' }}>
+                For Vercel hosting: Host APKs &gt; 4.5 MB on <strong>GitHub Releases</strong> (free up to 2 GB) or Google Drive, then paste the direct download URL here.
               </div>
             </div>
 

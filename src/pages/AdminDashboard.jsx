@@ -56,6 +56,7 @@ export default function AdminDashboard() {
   const [versionForm, setVersionForm] = useState({ version: '', releaseNotes: '', fileSize: '25 MB' });
   const [uploadingAdminApk, setUploadingAdminApk] = useState(false);
   const [adminUploadedApkName, setAdminUploadedApkName] = useState(null);
+  const [adminApkNotice, setAdminApkNotice] = useState(null);
   const adminApkInputRef = useRef(null);
 
   // Analytics & Reviews States
@@ -237,6 +238,7 @@ export default function AdminDashboard() {
   const handleOpenUpdateModal = (product) => {
     setShowVersionModal(product);
     setAdminUploadedApkName(null);
+    setAdminApkNotice(null);
     let nextVersion = '1.1.0';
     if (product.version) {
       const parts = product.version.split('.');
@@ -263,7 +265,29 @@ export default function AdminDashboard() {
   // Upload new version APK from Admin Modal
   const handleAdminApkUpload = async (file) => {
     if (!file) return;
+
+    // Auto-measure file size and detect version directly in browser
+    const sizeInMB = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+    const verMatch = file.name.match(/v?(\d+\.\d+(\.\d+)?)/i);
+    const detectedVersion = verMatch ? verMatch[1] : null;
+
+    setVersionForm(prev => ({
+      ...prev,
+      fileSize: sizeInMB,
+      version: detectedVersion || prev.version
+    }));
+    setAdminUploadedApkName(file.name);
+
+    // Vercel Serverless Functions have a strict 4.5 MB request payload limit
+    if (file.size > 4.5 * 1024 * 1024) {
+      setAdminApkNotice(
+        `Package ${file.name} (${sizeInMB}) measured. Because Vercel serverless functions limit direct uploads to 4.5 MB, please enter a direct download URL (e.g. from GitHub Releases, Google Drive, or Firebase) in the APK Download URL field below.`
+      );
+      return;
+    }
+
     setUploadingAdminApk(true);
+    setAdminApkNotice(null);
     const body = new FormData();
     body.append('file', file);
 
@@ -278,7 +302,6 @@ export default function AdminDashboard() {
         apkUrl: data.url,
         version: data.detectedVersion || prev.version
       }));
-      setAdminUploadedApkName(file.name);
     } catch (err) {
       alert('Error uploading new version APK: ' + err.message);
     } finally {
@@ -1426,6 +1449,35 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 )}
+
+                {adminApkNotice && (
+                  <div style={{
+                    backgroundColor: '#EFF6FF',
+                    border: '1px solid #BFDBFE',
+                    borderRadius: '10px',
+                    padding: '10px 14px',
+                    fontSize: '12px',
+                    color: '#1E40AF',
+                    marginTop: '8px',
+                    lineHeight: '1.4'
+                  }}>
+                    ℹ️ {adminApkNotice}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="input-label">APK Package Download URL (Cloud Storage / GitHub Releases)</label>
+                <input
+                  type="text"
+                  value={versionForm.apkUrl || ''}
+                  onChange={(e) => setVersionForm(prev => ({ ...prev, apkUrl: e.target.value }))}
+                  className="input-control"
+                  placeholder="e.g. https://github.com/dagdagim/Publish/releases/download/.../app.apk"
+                />
+                <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '3px' }}>
+                  For Vercel hosting: Host APKs &gt; 4.5 MB on <strong>GitHub Releases</strong> (free up to 2 GB) or Google Drive, then paste the direct download link here.
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
