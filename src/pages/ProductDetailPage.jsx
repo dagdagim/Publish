@@ -140,6 +140,7 @@ export default function ProductDetailPage() {
   }
 
   const { product, versions = [], reviews = [], publisher, related = [] } = data;
+  const isWebOnly = product.platform === 'Web' || (product.isWebApp && !product.apkUrl);
 
   return (
     <div style={{ paddingBottom: '64px' }}>
@@ -383,7 +384,17 @@ export default function ProductDetailPage() {
                           </div>
                         </div>
 
-                        {isAuthenticated ? (
+                        {isWebOnly ? (
+                          <a
+                            href={product.webUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-outline btn-sm"
+                            style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <ExternalLink size={13} /> Launch
+                          </a>
+                        ) : isAuthenticated ? (
                           <a
                             href={`/api/products/${product.id}/download-package?token=${encodeURIComponent(token)}`}
                             download={`${product.slug}-v${v.version}.apk`}
@@ -591,13 +602,17 @@ export default function ProductDetailPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12.5px', color: '#475569' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShieldCheck size={16} color="#16A34A" /> Free & verified direct download
+                  <ShieldCheck size={16} color="#16A34A" /> {isWebOnly ? 'Verified cloud web application' : 'Free & verified direct download'}
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <CheckCircle2 size={16} color="#2563EB" /> Free account download access
+                  <CheckCircle2 size={16} color="#2563EB" /> {isWebOnly ? 'Instant browser access on any device' : 'Free account download access'}
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Smartphone size={16} color="#475569" /> Works completely offline
+                  {isWebOnly ? (
+                    <><Globe size={16} color="#475569" /> Progressive Web App (PWA) ready</>
+                  ) : (
+                    <><Smartphone size={16} color="#475569" /> Works completely offline</>
+                  )}
                 </span>
               </div>
 
@@ -627,12 +642,23 @@ export default function ProductDetailPage() {
                           )}
                           <div style={{ fontSize: '11px', color: '#94A3B8' }}>{v.releaseDate}</div>
                         </div>
-                        <button
-                          onClick={handleOpenDownload}
-                          style={{ color: '#2563EB', fontWeight: '600', fontSize: '12px', background: 'none', border: 'none', cursor: 'pointer' }}
-                        >
-                          Get APK
-                        </button>
+                        {isWebOnly ? (
+                          <a
+                            href={product.webUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#2563EB', fontWeight: '600', fontSize: '12px', textDecoration: 'none' }}
+                          >
+                            Launch ↗
+                          </a>
+                        ) : (
+                          <button
+                            onClick={handleOpenDownload}
+                            style={{ color: '#2563EB', fontWeight: '600', fontSize: '12px', background: 'none', border: 'none', cursor: 'pointer' }}
+                          >
+                            Get APK
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -640,8 +666,8 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Direct Mobile Phone QR Code Scanner Card */}
-            <QRCodeWidget product={product} />
+            {/* Direct Mobile Phone QR Code Scanner Card (Only for products with installable Android APK) */}
+            {!isWebOnly && <QRCodeWidget product={product} />}
 
             {/* Information Card */}
             <div style={{

@@ -4,6 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import { QrCode, Smartphone, Copy, Check, Download, ArrowDownToLine, Sparkles, Lock, UserPlus } from 'lucide-react';
 
 export default function QRCodeWidget({ product }) {
+  if (!product) return null;
+
+  // Web Application Only products do not have downloadable APK packages
+  const isWebOnly = product.platform === 'Web' || (product.isWebApp && !product.apkUrl);
+  if (isWebOnly) {
+    return null;
+  }
+
   const { token, isAuthenticated, openAuthModal } = useAuth();
   const canvasRef = useRef(null);
   const [copied, setCopied] = useState(false);
