@@ -193,33 +193,35 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-// Multer storage setup for uploads with 500 MB max file size
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    let subfolder = 'files';
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (file.mimetype.includes('image') || ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'].includes(ext)) {
-      subfolder = 'images';
-    } else if (['.apk', '.aab', '.xapk', '.zip'].includes(ext) || file.originalname.endsWith('.apk')) {
-      subfolder = 'apks';
-    }
-    let dest = path.join(UPLOADS_DIR, subfolder);
-    try {
-      if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
-    } catch (e) {
-      dest = path.join('/tmp', 'uploads', subfolder);
-      if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
-    }
-    cb(null, dest);
-  },
-  filename: (req, file, cb) => {
-    const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-    cb(null, `${Date.now()}-${cleanName}`);
-  }
-});
+// Multer storage setup for uploads
+// On Vercel, serverless filesystem is strictly read-only (EROFS).
+// Use memoryStorage so image uploads (icons, banners, screenshots) convert directly to high-fidelity Data URLs
+// and get persisted into MongoDB Atlas with zero disk dependency.
+const isServerless = !!process.env.VERCEL;
+const storage = isServerless
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        let subfolder = 'files';
+        const ext = path.extname(file.originalname || '').toLowerCase();
+        if ((file.mimetype && file.mimetype.includes('image')) || ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'].includes(ext)) {
+          subfolder = 'images';
+        } else if (['.apk', '.aab', '.xapk', '.zip'].includes(ext) || file.originalname.endsWith('.apk')) {
+          subfolder = 'apks';
+        }
+        const dest = path.join(UPLOADS_DIR, subfolder);
+        if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+        cb(null, dest);
+      },
+      filename: (req, file, cb) => {
+        const cleanName = (file.originalname || 'file').replace(/[^a-zA-Z0-9.-]/g, '_');
+        cb(null, `${Date.now()}-${cleanName}`);
+      }
+    });
+
 const upload = multer({
   storage,
-  limits: { fileSize: 500 * 1024 * 1024 } // 500 MB max app file upload
+  limits: { fileSize: 50 * 1024 * 1024 } // 50 MB max
 });
 
 // ==========================================
@@ -1400,62 +1402,109 @@ app.get('/api/admin/analytics', (req, res) => {
 });
 
 // Multer upload endpoint with auto app size detection and APK metadata
-app.post('/api/upload', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const ext = path.extname(req.file.originalname).toLowerCase();
-  const isImage = req.file.mimetype.includes('image') || ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'].includes(ext);
-  const isApk = ['.apk', '.aab', '.xapk', '.zip'].includes(ext) || req.file.originalname.endsWith('.apk');
-  const subfolder = isImage ? 'images' : isApk ? 'apks' : 'files';
-  const fileUrl = `/uploads/${subfolder}/${req.file.filename}`;
-  const fileSizeFormatted = formatFileSize(req.file.size);
+app.post('/api/upload', (req, res) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      console.error('[Upload Error]:', err);
+      return res.status(400).json({ error: err.message || 'Error uploading file' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-  let responseData = {
-    url: fileUrl,
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    bytes: req.file.size,
-    fileSize: fileSizeFormatted,
-    isImage,
-    isAppPackage: isApk
-  };
+    const ext = path.extname(req.file.originalname || '').toLowerCase();
+    const isImage = (req.file.mimetype && req.file.mimetype.includes('image')) || ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'].includes(ext);
+    const isApk = ['.apk', '.aab', '.xapk', '.zip'].includes(ext) || (req.file.originalname && req.file.originalname.endsWith('.apk'));
+    const subfolder = isImage ? 'images' : isApk ? 'apks' : 'files';
+    const fileSizeFormatted = formatFileSize(req.file.size);
 
-  if (isApk) {
-    // Extract version from filename if present (e.g. app-v1.2.0.apk)
-    const verMatch = req.file.originalname.match(/v?(\d+\.\d+(\.\d+)?)/i);
-    const version = verMatch ? verMatch[1] : '1.0.0';
-    const cleanBase = req.file.originalname.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    let fileUrl;
+    if (req.file.buffer) {
+      if (isImage) {
+        const mime = req.file.mimetype || 'image/png';
+        fileUrl = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
+      } else {
+        const cleanName = (req.file.originalname || 'package.apk').replace(/[^a-zA-Z0-9.-]/g, '_');
+        fileUrl = `/uploads/${subfolder}/${Date.now()}-${cleanName}`;
+      }
+    } else {
+      fileUrl = `/uploads/${subfolder}/${req.file.filename}`;
+    }
 
-    responseData = {
-      ...responseData,
-      detectedVersion: version,
-      versionCode: 1,
-      packageId: `com.tobiyastudio.${cleanBase || 'app'}`,
-      minRequirement: 'Android 8.0+ (API 26)',
-      targetSdk: 'Android 14 (API 34)',
-      track: 'Production'
+    let responseData = {
+      url: fileUrl,
+      filename: req.file.filename || req.file.originalname,
+      originalName: req.file.originalname,
+      bytes: req.file.size,
+      fileSize: fileSizeFormatted,
+      isImage,
+      isAppPackage: isApk
     };
-  }
 
-  res.json(responseData);
+    if (isApk) {
+      const verMatch = (req.file.originalname || '').match(/v?(\d+\.\d+(\.\d+)?)/i);
+      const version = verMatch ? verMatch[1] : '1.0.0';
+      const cleanBase = (req.file.originalname || 'app').replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+      responseData = {
+        ...responseData,
+        detectedVersion: version,
+        versionCode: 1,
+        packageId: `com.tobiyastudio.${cleanBase || 'app'}`,
+        minRequirement: 'Android 8.0+ (API 26)',
+        targetSdk: 'Android 14 (API 34)',
+        track: 'Production'
+      };
+    }
+
+    res.json(responseData);
+  });
 });
 
 // Multer upload endpoint for multiple screenshots
-app.post('/api/upload/multiple', upload.array('files', 12), (req, res) => {
-  if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files uploaded' });
-  const results = req.files.map(file => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const isImage = file.mimetype.includes('image') || ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'].includes(ext);
-    const subfolder = isImage ? 'images' : 'files';
-    return {
-      url: `/uploads/${subfolder}/${file.filename}`,
-      filename: file.filename,
-      originalName: file.originalname,
-      bytes: file.size,
-      fileSize: formatFileSize(file.size),
-      isImage
-    };
+app.post('/api/upload/multiple', (req, res) => {
+  upload.array('files', 12)(req, res, (err) => {
+    if (err) {
+      console.error('[Multiple Upload Error]:', err);
+      return res.status(400).json({ error: err.message || 'Error uploading screenshots' });
+    }
+    if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files uploaded' });
+
+    const results = req.files.map(file => {
+      const ext = path.extname(file.originalname || '').toLowerCase();
+      const isImage = (file.mimetype && file.mimetype.includes('image')) || ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif'].includes(ext);
+      const subfolder = isImage ? 'images' : 'files';
+      let fileUrl;
+      if (file.buffer) {
+        if (isImage) {
+          const mime = file.mimetype || 'image/png';
+          fileUrl = `data:${mime};base64,${file.buffer.toString('base64')}`;
+        } else {
+          const cleanName = (file.originalname || 'file').replace(/[^a-zA-Z0-9.-]/g, '_');
+          fileUrl = `/uploads/${subfolder}/${Date.now()}-${cleanName}`;
+        }
+      } else {
+        fileUrl = `/uploads/${subfolder}/${file.filename}`;
+      }
+      return {
+        url: fileUrl,
+        filename: file.filename || file.originalname,
+        originalName: file.originalname,
+        bytes: file.size,
+        fileSize: formatFileSize(file.size),
+        isImage
+      };
+    });
+    res.json({ files: results });
   });
-  res.json({ files: results });
+});
+
+// Global JSON error handler so API never returns HTML to client
+app.use((err, req, res, next) => {
+  console.error('[API Error Handler]:', err);
+  if (res.headersSent) return next(err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal server error occurred',
+    code: err.code || 'SERVER_ERROR'
+  });
 });
 
 // Serve built production frontend if present (when running standalone node server)

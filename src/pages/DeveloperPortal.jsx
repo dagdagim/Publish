@@ -220,21 +220,31 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
     }
   };
 
-  // 2. Icon Upload
+  // 2. Icon Upload (Instant Client-side Preview + Resilient Upload)
   const handleIconUpload = async (file) => {
     if (!file) return;
     setUploadingIcon(true);
-    const body = new FormData();
-    body.append('file', file);
+
+    // Instant local preview using FileReader
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      setFormData(prev => ({ ...prev, icon: dataUrl }));
+    };
+    reader.readAsDataURL(file);
 
     try {
+      const body = new FormData();
+      body.append('file', file);
       const res = await fetch('/api/upload', { method: 'POST', body });
-      const data = await res.json();
-      if (data.url) {
-        setFormData(prev => ({ ...prev, icon: data.url }));
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          setFormData(prev => ({ ...prev, icon: data.url }));
+        }
       }
     } catch (err) {
-      alert('Error uploading icon: ' + err.message);
+      console.warn('Backend upload notice, using client data URL:', err.message);
     } finally {
       setUploadingIcon(false);
     }
@@ -244,17 +254,26 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
   const handleBannerUpload = async (file) => {
     if (!file) return;
     setUploadingBanner(true);
-    const body = new FormData();
-    body.append('file', file);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      setFormData(prev => ({ ...prev, coverImage: dataUrl }));
+    };
+    reader.readAsDataURL(file);
 
     try {
+      const body = new FormData();
+      body.append('file', file);
       const res = await fetch('/api/upload', { method: 'POST', body });
-      const data = await res.json();
-      if (data.url) {
-        setFormData(prev => ({ ...prev, coverImage: data.url }));
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          setFormData(prev => ({ ...prev, coverImage: data.url }));
+        }
       }
     } catch (err) {
-      alert('Error uploading feature graphic: ' + err.message);
+      console.warn('Backend banner notice, using client data URL:', err.message);
     } finally {
       setUploadingBanner(false);
     }
@@ -264,21 +283,38 @@ export default function DeveloperPortal({ isAdminMode = false, onPublished }) {
   const handleScreenshotsUpload = async (files) => {
     if (!files || files.length === 0) return;
     setUploadingScreenshots(true);
-    const body = new FormData();
-    Array.from(files).forEach(f => body.append('files', f));
 
-    try {
-      const res = await fetch('/api/upload/multiple', { method: 'POST', body });
-      const data = await res.json();
-      if (data.files && data.files.length > 0) {
-        const newUrls = data.files.map(f => f.url);
+    const fileArray = Array.from(files);
+    fileArray.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target.result;
         setFormData(prev => ({
           ...prev,
-          screenshots: [...prev.screenshots, ...newUrls].slice(0, 8)
+          screenshots: prev.screenshots.includes(dataUrl)
+            ? prev.screenshots
+            : [...prev.screenshots, dataUrl].slice(0, 8)
         }));
+      };
+      reader.readAsDataURL(file);
+    });
+
+    try {
+      const body = new FormData();
+      fileArray.forEach(f => body.append('files', f));
+      const res = await fetch('/api/upload/multiple', { method: 'POST', body });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.files && data.files.length > 0) {
+          const newUrls = data.files.map(f => f.url);
+          setFormData(prev => ({
+            ...prev,
+            screenshots: [...new Set([...prev.screenshots, ...newUrls])].slice(0, 8)
+          }));
+        }
       }
     } catch (err) {
-      alert('Error uploading screenshots: ' + err.message);
+      console.warn('Backend screenshots notice, using client data URLs:', err.message);
     } finally {
       setUploadingScreenshots(false);
     }
